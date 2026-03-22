@@ -4,7 +4,8 @@ namespace CybersecurityBot
 {
     public class Chatbot
     {
-        private string _userName = string.Empty;
+        // Uses UserProfile with automatic properties instead of a plain string
+        private UserProfile _user = new UserProfile(string.Empty);
 
         public void Start()
         {
@@ -21,10 +22,15 @@ namespace CybersecurityBot
             UI.TypeText("  I'm here to help you stay safe in the digital world.", ConsoleColor.Cyan);
             Console.WriteLine();
 
-            _userName = InputValidator.GetUserName();
+            // Capture name and store in UserProfile
+            string rawName = InputValidator.GetUserName();
+            _user = new UserProfile(rawName);
 
             Console.WriteLine();
-            UI.TypeText($"  Great to meet you, {_userName}! 👋", ConsoleColor.Green);
+
+            // TimeGreeting uses the SessionStart automatic property
+            // FormattedName applies string manipulation (title-case) via automatic property
+            UI.TypeText($"  {_user.TimeGreeting}, {_user.FormattedName}! 👋", ConsoleColor.Green);
             UI.TypeText($"  Ask me anything about cybersecurity, or type 'help' to see topics.", ConsoleColor.Green);
             UI.TypeText("  Type 'exit' or 'quit' at any time to leave.", ConsoleColor.DarkGray);
             Console.WriteLine();
@@ -37,7 +43,7 @@ namespace CybersecurityBot
             {
                 UI.PrintDivider('─');
                 Console.ForegroundColor = ConsoleColor.White;
-                Console.Write($"  {_userName}: ");
+                Console.Write($"  {_user.FormattedName}: ");
                 Console.ResetColor();
 
                 string input = Console.ReadLine() ?? string.Empty;
@@ -55,6 +61,14 @@ namespace CybersecurityBot
                     continue;
                 }
 
+                // Increment message count automatic property
+                _user.MessageCount++;
+
+                // Store last topic using string manipulation (Trim + Substring)
+                _user.LastTopic = input.Trim().Length > 30
+                    ? input.Trim().Substring(0, 30) + "..."
+                    : input.Trim();
+
                 // Get and display response
                 string? response = ResponseEngine.GetResponse(input);
 
@@ -66,7 +80,7 @@ namespace CybersecurityBot
                 else
                 {
                     UI.TypeText(
-                        $"  🤖 Bot: I didn't quite understand that, {_userName}. Could you rephrase?\n" +
+                        $"  🤖 Bot: I didn't quite understand that, {_user.FormattedName}. Could you rephrase?\n" +
                         "         Try asking about: passwords, phishing, safe browsing, malware, privacy, or 2FA.",
                         ConsoleColor.DarkYellow, delay: 12);
                 }
@@ -79,6 +93,7 @@ namespace CybersecurityBot
         private bool IsExitCommand(string input)
         {
             if (string.IsNullOrWhiteSpace(input)) return false;
+            // String manipulation: Trim() and ToLower() to normalise input
             string trimmed = input.Trim().ToLower();
             return trimmed == "exit" || trimmed == "quit" || trimmed == "bye";
         }
@@ -87,7 +102,10 @@ namespace CybersecurityBot
         {
             Console.WriteLine();
             UI.PrintDivider();
-            UI.TypeText($"  Stay safe out there, {_userName}! 🛡  Goodbye!", ConsoleColor.Green);
+            // Uses FormattedName, MessageCount and SessionDuration automatic properties
+            UI.TypeText($"  Stay safe out there, {_user.FormattedName}! 🛡  Goodbye!", ConsoleColor.Green);
+            UI.TypeText($"  You sent {_user.MessageCount} message(s) in this session ({_user.SessionDuration}).",
+                ConsoleColor.DarkGray);
             UI.PrintDivider();
             Console.WriteLine();
         }
