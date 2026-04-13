@@ -1,14 +1,14 @@
 {
   "version": 2,
-  "dgSpecHash": "kTVG5d4oGQQ=",
+  "dgSpecHash": "9WWdyqtsW88=",
   "success": true,
-  "projectFilePath": "C:\\Users\\PC\\Documents\\GitHub\\Programming-\\progh - Copy\\CybersecurityBot.csproj",
+  "projectFilePath": "C:\\Users\\Student\\Documents\\GitHub\\Programming-\\progh - Copy\\CybersecurityBot.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\PC\\.nuget\\packages\\system.windows.extensions\\9.0.0\\system.windows.extensions.9.0.0.nupkg.sha512",
-    "C:\\Users\\PC\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.13\\microsoft.netcore.app.ref.9.0.13.nupkg.sha512",
-    "C:\\Users\\PC\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.13\\microsoft.windowsdesktop.app.ref.9.0.13.nupkg.sha512",
-    "C:\\Users\\PC\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\9.0.13\\microsoft.aspnetcore.app.ref.9.0.13.nupkg.sha512",
-    "C:\\Users\\PC\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\9.0.13\\microsoft.netcore.app.host.win-x64.9.0.13.nupkg.sha512"
+    "C:\\Users\\Student\\.nuget\\packages\\system.windows.extensions\\9.0.0\\system.windows.extensions.9.0.0.nupkg.sha512",
+    "C:\\Users\\Student\\.nuget\\packages\\microsoft.netcore.app.ref\\9.0.13\\microsoft.netcore.app.ref.9.0.13.nupkg.sha512",
+    "C:\\Users\\Student\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\9.0.13\\microsoft.windowsdesktop.app.ref.9.0.13.nupkg.sha512",
+    "C:\\Users\\Student\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\9.0.13\\microsoft.aspnetcore.app.ref.9.0.13.nupkg.sha512",
+    "C:\\Users\\Student\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\9.0.13\\microsoft.netcore.app.host.win-x64.9.0.13.nupkg.sha512"
   ],
   "logs": []
 }

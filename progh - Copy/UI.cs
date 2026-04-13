@@ -50,17 +50,16 @@ namespace CybersecurityBot
             Console.ForegroundColor = ConsoleColor.Green;
 
             Console.WriteLine();
-            Console.WriteLine(@"  ╔══════════════════════════════════════════════════════════╗");
-            Console.WriteLine(@"  ║   ____      _                                            ║");
-            Console.WriteLine(@"  ║  / ___|   _| |__   ___ _ __  ___  ___  ___               ║");
-            Console.WriteLine(@"  ║ | |  | | | | '_ \ / _ \ '__/ __|/ _ \/ __|               ║");
-            Console.WriteLine(@"  ║ | |__| |_| | |_) |  __/ |  \__ \  __/ (__                ║");
-            Console.WriteLine(@"  ║  \____\__, |_.__/ \___|_|  |___/\___|\___|               ║");
-            Console.WriteLine(@"  ║       |___/                                              ║");
-            Console.WriteLine(@"  ║         A W A R E N E S S   B O T  🛡                    ║");
-            Console.WriteLine(@"  ╚══════════════════════════════════════════════════════════╝");
-            Console.WriteLine();
-
+             Console.WriteLine(@"  ╔══════════════════════════════════════════════════════════╗");
+             Console.WriteLine(@"  ║   _      ___    _    __  __                              ║");
+             Console.WriteLine(@"  ║  | |    |_ _|  / \  |  \/  |                             ║");
+             Console.WriteLine(@"  ║  | |     | |  / _ \ | |\/| |                             ║");
+             Console.WriteLine(@"  ║  | |___  | | / ___ \| |  | |                             ║");
+             Console.WriteLine(@"  ║  |_____| |___/_/   \_\_| |_|                             ║");
+             Console.WriteLine(@"  ║                                                          ║");
+             Console.WriteLine(@"  ║         A W A R E N E S S   B O T  🛡                    ║");
+             Console.WriteLine(@"  ╚══════════════════════════════════════════════════════════╝");
+             Console.WriteLine();
             Console.ForegroundColor = original;
 
             PrintColored("  Protecting you in the digital world, one tip at a time.", ConsoleColor.DarkGreen);
