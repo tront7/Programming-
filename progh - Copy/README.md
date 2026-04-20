@@ -142,7 +142,7 @@ dotnet run
 
 ---
 
-## 🔊 Audio Setup (Optional)
+##  Audio Setup (Optional)
 
 To enable the voice greeting:
 
