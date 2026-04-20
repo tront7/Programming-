@@ -1,18 +1,18 @@
-# 🛡 Cybersecurity Awareness Chatbot (Liam)
+#  Cybersecurity Awareness Chatbot (Liam)
 
-## 📌 Overview
+##  Overview
 
 The **Cybersecurity Awareness Bot (Liam)** is a C# console-based application designed to educate users about cybersecurity best practices through an interactive chat interface.
 
 The bot provides real-time responses on topics such as:
 
-* Password security 🔐
-* Phishing attacks 🎣
-* Malware protection 🦠
-* Safe browsing 🌐
-* Data privacy 🔏
-* Social engineering 🎭
-* Two-factor authentication (2FA) 🔑
+* Password security 
+* Phishing attacks 
+* Malware protection 
+* Safe browsing 
+* Data privacy 
+* Social engineering 
+* Two-factor authentication (2FA) 
 
 It also includes:
 
@@ -23,15 +23,15 @@ It also includes:
 
 ---
 
-## 🧠 Features
+##  Features
 
-### ✅ Interactive Chat System
+###  Interactive Chat System
 
 * Continuous conversation loop
 * Keyword-based response engine
 * Smart input validation
 
-### ✅ User Personalization
+### User Personalization
 
 * Captures and formats user name
 * Tracks:
@@ -40,24 +40,24 @@ It also includes:
   * Session duration
   * Last discussed topic
 
-### ✅ UI/UX Enhancements
+###  UI/UX Enhancements
 
 * ASCII art logo display
 * Colored console output
 * Typing animation effect
 
-### ✅ Audio Support
+###  Audio Support
 
 * Plays a `greeting.wav` file at startup (if available)
 
-### ✅ Error Handling
+###  Error Handling
 
 * Input validation with feedback
 * Graceful handling of missing audio file
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 CybersecurityBot/
@@ -81,20 +81,20 @@ CybersecurityBot/
 
 ---
 
-## ⚙️ Requirements
+##  Requirements
 
 * .NET SDK **6.0 or higher** (Project targets .NET 9.0)
 * Windows, Linux, or macOS
 * IDE:
 
-  * ✅ Visual Studio
-  * ✅ Visual Studio Code
+  *  Visual Studio
+  *  Visual Studio Code
 
 ---
 
-## ▶️ How to Run the Application
+##  How to Run the Application
 
-### 🔹 Using Visual Studio
+###  Using Visual Studio
 
 1. Open **Visual Studio**
 2. Click **Open a Project or Solution**
@@ -104,7 +104,7 @@ CybersecurityBot/
 
 ---
 
-### 🔹 Using Visual Studio Code
+###  Using Visual Studio Code
 
 1. Install:
 
@@ -131,7 +131,7 @@ CybersecurityBot/
 
 ---
 
-### 🔹 Using Terminal / Command Prompt
+###  Using Terminal / Command Prompt
 
 Navigate to the project directory:
 
@@ -163,9 +163,9 @@ If the file is missing, the program will continue without audio.
 
 ---
 
-## 🧩 How It Works
+##  How It Works
 
-### 🔹 Program Flow
+###  Program Flow
 
 1. `Program.cs`
 
@@ -215,7 +215,7 @@ If the file is missing, the program will continue without audio.
 
 ---
 
-## 🔁 Continuous Integration (CI)
+##  Continuous Integration (CI)
 
 This project includes a **GitHub Actions workflow**:
 
@@ -234,7 +234,7 @@ This project includes a **GitHub Actions workflow**:
 
 ---
 
-## 🧱 Technologies Used
+##  Technologies Used
 
 * **Language:** C#
 * **Framework:** .NET 9.0
@@ -248,17 +248,17 @@ This project includes a **GitHub Actions workflow**:
 
 ---
 
-## 💡 Compatibility
+##  Compatibility
 
 This project is fully compatible with:
 
-* ✅ **Visual Studio (recommended)**
-* ✅ **Visual Studio Code**
-* ✅ Command Line (.NET CLI)
+*  **Visual Studio (recommended)**
+*  **Visual Studio Code**
+*  Command Line (.NET CLI)
 
 ---
 
-## 🚪 Exit Commands
+##  Exit Commands
 
 Users can exit the chatbot by typing:
 
@@ -270,7 +270,7 @@ bye
 
 ---
 
-## 📌 Notes
+##  Notes
 
 * The chatbot uses **simple keyword matching**, not AI/NLP
 * Designed for educational purposes
@@ -282,7 +282,7 @@ bye
 
 ---
 
-## 🚀 Future Improvements
+##  Future Improvements
 
 * Add AI/NLP support (e.g., OpenAI API)
 * Store chat history
@@ -292,7 +292,7 @@ bye
 
 ---
 
-## 👨‍💻 Author
+##  Author
 
 Nemukongwe Oripfa Clinton
 
