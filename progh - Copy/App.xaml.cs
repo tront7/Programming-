@@ -1,0 +1,6 @@
+using System.Windows;
+
+namespace CybersecurityBot
+{
+    public partial class App : Application { }
+}

@@ -1,4 +1,4 @@
-using System; // Provides basic system functionality
+using System;
 
 namespace CybersecurityBot
 {
@@ -48,28 +48,15 @@ namespace CybersecurityBot
         /// </summary>
         /// <returns>A valid, trimmed user name</returns>
         public static string GetUserName()
-        {
-            string name = string.Empty; // Initialize variable to store user input
-
-            // Loop until a valid name is entered
-            while (true)
-            {
-                Console.Write("  Enter your name: ");
-                name = Console.ReadLine() ?? string.Empty; // Read user input safely
-
-                // Validate that name is not empty and has at least 2 characters
-                if (!string.IsNullOrWhiteSpace(name) && name.Trim().Length >= 2)
-                    break; // Exit loop if valid
-
-                // Display error message if validation fails
-                UI.PrintColored(
-                    "  ⚠  Please enter a valid name (at least 2 characters).", 
-                    ConsoleColor.Yellow
-                );
-            }
-
-            // Return cleaned (trimmed) name to remove extra spaces
-            return name.Trim();
-        }
+{
+    Console.Write("Please enter your name: ");
+    string? name = Console.ReadLine();
+    while (string.IsNullOrWhiteSpace(name) || name.Length < 2)
+    {
+        Console.Write("Name must be at least 2 characters. Please try again: ");
+        name = Console.ReadLine();
+    }
+    return name.Trim();
+}
     }
 }
