@@ -1,59 +1,24 @@
-#  Cybersecurity Awareness Chatbot (Liam)
+#  Cybersecurity Awareness Bot — Liam
 
-##  Overview
-
-The **Cybersecurity Awareness Bot (Liam)** is a C# console-based application designed to educate users about cybersecurity best practices through an interactive chat interface.
-
-The bot provides real-time responses on topics such as:
-
-* Password security 
-* Phishing attacks 
-* Malware protection 
-* Safe browsing 
-* Data privacy 
-* Social engineering 
-* Two-factor authentication (2FA) 
-
-It also includes:
-
-* A personalized user session
-* ASCII UI styling
-* Simulated typing effects
-* Optional voice greeting
+A C# / WPF desktop application that educates users about cybersecurity best practices through
+an interactive, keyword-driven chat interface. Designed to be extensible, professionally
+structured, and easy to run on any Windows machine with .NET 9 installed.
 
 ---
 
 ##  Features
 
-###  Interactive Chat System
-
-* Continuous conversation loop
-* Keyword-based response engine
-* Smart input validation
-
-### User Personalization
-
-* Captures and formats user name
-* Tracks:
-
-  * Number of messages
-  * Session duration
-  * Last discussed topic
-
-###  UI/UX Enhancements
-
-* ASCII art logo display
-* Colored console output
-* Typing animation effect
-
-###  Audio Support
-
-* Plays a `greeting.wav` file at startup (if available)
-
-###  Error Handling
-
-* Input validation with feedback
-* Graceful handling of missing audio file
+| Feature | Detail |
+|---|---|
+| **Interactive chat** | Continuous conversation loop with keyword matching |
+| **Sentiment detection** | Detects tone (positive, worried, confused, angry) and adapts replies |
+| **Contextual memory** | Remembers mentioned device, browser, and security concerns |
+| **Follow-up detection** | Recognises phrases like "tell me more" and expands on the last topic |
+| **Session tracking** | Live session timer, message counter, and last-topic display |
+| **Activity log** | Timestamped internal log of every significant event (delegate / event pattern) |
+| **Topic chips** | Clickable buttons for all 18 major cybersecurity topics |
+| **Voice greeting** | Optional `.wav` playback at startup |
+| **ASCII branding** | Full terminal logo with colour and typing animation (console mode) |
 
 ---
 
@@ -62,238 +27,143 @@ It also includes:
 ```
 CybersecurityBot/
 │
-├── Program.cs              # Entry point of the application
-├── Chatbot.cs              # Core chatbot logic and conversation loop
-├── UserProfile.cs          # Stores user session data (auto properties)
-├── ResponseEngine.cs       # Keyword-response mapping logic
-├── InputValidator.cs       # Input validation and name handling
-├── UI.cs                   # Console UI styling and animations
-├── VoiceGreeting.cs        # Audio playback functionality
+├── Program.cs              # Entry point — boots audio, logo, and chatbot
+├── Chatbot.cs              # Console session orchestrator
+├── UserProfile.cs          # Session data via auto-properties
+├── ConversationContext.cs  # Memory, follow-up detection, activity log, delegate/event
+├── ResponseEngine.cs       # Keyword → response dictionary with delegate selector
+├── SentimentDetector.cs    # Tone detection and empathetic prefix selection
+├── InputValidator.cs       # Input validation and name capture
+├── UI.cs                   # Console colours, typing animation, ASCII logo
+├── VoiceGreeting.cs        # Optional .wav playback
 │
-├── CybersecurityBot.csproj # Project configuration file
+├── MainWindow.xaml         # WPF UI layout (sidebar + chat panel)
+├── MainWindow.xaml.cs      # WPF code-behind — bridges UI to domain classes
+├── App.xaml / App.xaml.cs  # WPF application host
 │
-├── greeting.wav            # (Optional) Voice greeting file
-│
-└── .github/
-    └── workflows/
-        └── dotnet.yml      # GitHub Actions CI pipeline
+├── CybersecurityBot.csproj # Project configuration (.NET 9, WPF)
+├── greeting.wav            # (Optional) placed in bin/Debug/net9.0-windows/
+└── README.md
 ```
 
 ---
 
-##  Requirements
+##  Getting Started
 
-* .NET SDK **6.0 or higher** (Project targets .NET 9.0)
-* Windows, Linux, or macOS
-* IDE:
+### Prerequisites
 
-  *  Visual Studio
-  *  Visual Studio Code
+- [.NET 9 SDK](https://dotnet.microsoft.com/download) (or higher)
+- Windows OS (required for WPF and `System.Media.SoundPlayer`)
+- Visual Studio 2022+ **or** VS Code with the C# extension
 
----
+### Run with Visual Studio
 
-##  How to Run the Application
+1. Open `CybersecurityBot.csproj` in Visual Studio.
+2. Press **F5** or click **Start**.
+3. The WPF window will launch.
 
-###  Using Visual Studio
-
-1. Open **Visual Studio**
-2. Click **Open a Project or Solution**
-3. Select `CybersecurityBot.csproj`
-4. Press **F5** or click **Start**
-5. The chatbot will launch in the console
-
----
-
-###  Using Visual Studio Code
-
-1. Install:
-
-   * .NET SDK
-   * C# Extension (by Microsoft)
-
-2. Open the project folder:
-
-   ```bash
-   code .
-   ```
-
-3. Restore dependencies:
-
-   ```bash
-   dotnet restore
-   ```
-
-4. Run the application:
-
-   ```bash
-   dotnet run
-   ```
-
----
-
-###  Using Terminal / Command Prompt
-
-Navigate to the project directory:
+### Run with the .NET CLI
 
 ```bash
 cd CybersecurityBot
+dotnet restore
 dotnet run
 ```
 
 ---
 
-##  Audio Setup (Optional)
+##  Optional Voice Greeting
 
-To enable the voice greeting:
-
-1. Place a file named:
-
-   ```
-   greeting.wav
-   ```
-2. Inside the output directory:
-
-   ```
-   bin/Debug/net9.0/
-   ```
-
-   *(or Release folder if applicable)*
-
-If the file is missing, the program will continue without audio.
-
----
-
-##  How It Works
-
-###  Program Flow
-
-1. `Program.cs`
-
-   * Entry point
-   * Plays voice greeting
-   * Displays ASCII logo
-   * Starts chatbot
-
-2. `Chatbot.cs`
-
-   * Handles:
-
-     * Greeting
-     * User interaction loop
-     * Exit conditions
-
-3. `InputValidator.cs`
-
-   * Ensures valid user input
-   * Prompts for correct name format
-
-4. `UserProfile.cs`
-
-   * Stores session data using **automatic properties**
-   * Provides computed values:
-
-     * Formatted name
-     * Time-based greeting
-     * Session duration
-
-5. `ResponseEngine.cs`
-
-   * Uses a dictionary to match keywords with responses
-
-6. `UI.cs`
-
-   * Handles all console styling:
-
-     * Colors
-     * Typing animation
-     * Dividers
-     * ASCII logo
-
-7. `VoiceGreeting.cs`
-
-   * Plays `.wav` file using `System.Media.SoundPlayer`
-
----
-
-##  Continuous Integration (CI)
-
-This project includes a **GitHub Actions workflow**:
-
-**File:** `.github/workflows/dotnet.yml`
-
-### What it does:
-
-* Restores dependencies
-* Builds the project
-* Treats warnings as errors
-
-### Runs on:
-
-* Push to `main` or `master`
-* Pull requests
-
----
-
-##  Technologies Used
-
-* **Language:** C#
-* **Framework:** .NET 9.0
-* **Libraries:**
-
-  * `System`
-  * `System.Media`
-  * `System.Threading`
-  * `System.Collections.Generic`
-  * `System.Windows.Extensions` (for audio support)
-
----
-
-##  Compatibility
-
-This project is fully compatible with:
-
-*  **Visual Studio (recommended)**
-*  **Visual Studio Code**
-*  Command Line (.NET CLI)
-
----
-
-##  Exit Commands
-
-Users can exit the chatbot by typing:
+Place a file named `greeting.wav` in the build output folder:
 
 ```
-exit
-quit
-bye
+bin/Debug/net9.0-windows/greeting.wav
 ```
 
----
-
-##  Notes
-
-* The chatbot uses **simple keyword matching**, not AI/NLP
-* Designed for educational purposes
-* Easily extendable with:
-
-  * More responses
-  * GUI (Windows Forms/WPF)
-  * Database integration
+If the file is absent, the application continues silently without error.
 
 ---
 
-##  Future Improvements
+##  Covered Topics
 
-* Add AI/NLP support (e.g., OpenAI API)
-* Store chat history
-* GUI interface
-* Multi-language support
-* Web-based version
+| Emoji | Topic |
+|-------|-------|
+|  | Passwords |
+|  | Phishing & Scams |
+|  | Safe Browsing & Internet Safety |
+|  | Malware |
+|  | Privacy |
+|  | Social Engineering |
+|  | 2FA / MFA |
+|  | VPN |
+|  | Ransomware |
+|  | Wi-Fi Security |
+|  | Encryption |
+|  | Data Breach |
+|  | Hacking |
+|  | Software Updates |
+|  | Firewalls |
+|  | Identity Theft |
+|  | Spam |
+
+Each topic has multiple randomised responses for variety.
+
+---
+
+##  Architecture Notes
+
+### Design patterns used
+
+| Pattern | Where |
+|---|---|
+| **Delegate + Event** | `ConversationContext.OnActivity` — decoupled activity logging |
+| **Strategy (delegate)** | `ResponseEngine.SelectResponse` — swappable response-selection logic |
+| **Auto-properties** | `UserProfile`, `ConversationContext` — clean session state |
+| **Sealed classes** | `Chatbot`, `UserProfile` — prevents unintended subclassing |
+| **Static helpers** | `UI`, `InputValidator`, `SentimentDetector`, `ResponseEngine` — stateless utilities |
+
+### Extending the response engine
+
+Add a new entry to the `Responses` dictionary in `ResponseEngine.cs`:
+
+```csharp
+["your keyword"] = new[]
+{
+    "First alternative response.",
+    "Second alternative response.",
+},
+```
+
+Add the display label to `TopicList` and the UI chip will appear automatically.
+
+---
+
+##  Planned Improvements
+
+- [ ] Integrate OpenAI / Claude API for true NLP responses
+- [ ] Persist chat history and user preferences to disk
+- [ ] Dark-mode theming toggle
+- [ ] Multi-language support
+- [ ] Export conversation transcript to PDF
+- [ ] Web-based version (Blazor or React)
+
+---
+
+##  Technologies
+
+| | |
+|---|---|
+| **Language** | C# 13 |
+| **Framework** | .NET 9.0 (Windows) |
+| **UI** | WPF (Windows Presentation Foundation) |
+| **Audio** | `System.Media.SoundPlayer` |
+| **CI** | GitHub Actions (`.github/workflows/dotnet.yml`) |
 
 ---
 
 ##  Author
 
-Nemukongwe Oripfa Clinton
+**Nemukongwe Oripfa Clinton**
 
-Developed as a **Cybersecurity Awareness Project** to promote safe digital practices through interactive learning.
+Developed as a Cybersecurity Awareness Project to promote safe digital practices
+through accessible, interactive learning.

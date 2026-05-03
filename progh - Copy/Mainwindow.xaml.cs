@@ -300,10 +300,9 @@ AddBotMessage("Here's what I can help you with — click any topic on the left, 
                 Background          = bg,
                 CornerRadius        = new CornerRadius(10),
                 Padding             = new Thickness(14, 10, 14, 10),
-                Margin              = new Thickness(align == HorizontalAlignment.Right ? 80 : 0,
-                                                    4,
-                                                    align == HorizontalAlignment.Right ? 0 : 80,
-                                                    4),
+                Margin              = new Thickness(
+                    align == HorizontalAlignment.Right ? 80 : 0, 4,
+
                 HorizontalAlignment = align,
                 MaxWidth            = 620,
             };
