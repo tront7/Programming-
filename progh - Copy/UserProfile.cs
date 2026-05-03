@@ -2,44 +2,39 @@ using System;
 
 namespace CybersecurityBot
 {
-    public class UserProfile
+    public sealed class UserProfile
     {
-        public string   Name         { get; set; } = string.Empty;
-        public DateTime SessionStart { get; set; } = DateTime.Now;
-        public int      MessageCount { get; set; } = 0;
-        public string   LastTopic    { get; set; } = string.Empty;
+        public string   Name         { get; }
+        public DateTime SessionStart { get; }
 
         public string FormattedName =>
             string.IsNullOrWhiteSpace(Name)
                 ? "User"
-                : char.ToUpper(Name[0]) + Name.Substring(1).ToLower();
+                : char.ToUpperInvariant(Name[0]) + Name[1..].ToLowerInvariant();
 
-        public string TimeGreeting
+        public string TimeGreeting => SessionStart.Hour switch
         {
-            get
-            {
-                int hour = SessionStart.Hour;
-                if (hour < 12) return "Good morning";
-                if (hour < 17) return "Good afternoon";
-                return "Good evening";
-            }
-        }
+            < 12 => "Good morning",
+            < 17 => "Good afternoon",
+            _    => "Good evening",
+        };
 
         public string SessionDuration
         {
             get
             {
-                TimeSpan d = DateTime.Now - SessionStart;
-                if (d.TotalMinutes < 1)  return "less than a minute";
-                if (d.TotalMinutes < 60) return $"{(int)d.TotalMinutes} minute(s)";
-                return $"{(int)d.TotalHours} hour(s)";
+                var e = DateTime.Now - SessionStart;
+                if (e.TotalSeconds < 60)  return "less than a minute";
+                if (e.TotalMinutes < 60)  return $"{(int)e.TotalMinutes} minute(s)";
+                return $"{(int)e.TotalHours} hour(s) and {e.Minutes} minute(s)";
             }
         }
 
         public UserProfile(string name)
         {
-            Name         = name.Trim();
-            SessionStart = DateTime.Now;
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Name cannot be empty.", nameof(name));
+            Name = name.Trim();
         }
     }
 }

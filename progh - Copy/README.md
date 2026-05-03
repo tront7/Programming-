@@ -1,4 +1,4 @@
-#  Cybersecurity Awareness Bot — Liam
+# 🛡 Cybersecurity Awareness Bot — Liam
 
 A C# / WPF desktop application that educates users about cybersecurity best practices through
 an interactive, keyword-driven chat interface. Designed to be extensible, professionally
@@ -6,7 +6,7 @@ structured, and easy to run on any Windows machine with .NET 9 installed.
 
 ---
 
-##  Features
+## ✨ Features
 
 | Feature | Detail |
 |---|---|
@@ -22,7 +22,7 @@ structured, and easy to run on any Windows machine with .NET 9 installed.
 
 ---
 
-##  Project Structure
+## 📁 Project Structure
 
 ```
 CybersecurityBot/
@@ -48,7 +48,7 @@ CybersecurityBot/
 
 ---
 
-##  Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -72,7 +72,7 @@ dotnet run
 
 ---
 
-##  Optional Voice Greeting
+## 🔉 Optional Voice Greeting
 
 Place a file named `greeting.wav` in the build output folder:
 
@@ -84,33 +84,33 @@ If the file is absent, the application continues silently without error.
 
 ---
 
-##  Covered Topics
+## 🗂 Covered Topics
 
 | Emoji | Topic |
 |-------|-------|
-|  | Passwords |
-|  | Phishing & Scams |
-|  | Safe Browsing & Internet Safety |
-|  | Malware |
-|  | Privacy |
-|  | Social Engineering |
-|  | 2FA / MFA |
-|  | VPN |
-|  | Ransomware |
-|  | Wi-Fi Security |
-|  | Encryption |
-|  | Data Breach |
-|  | Hacking |
-|  | Software Updates |
-|  | Firewalls |
-|  | Identity Theft |
-|  | Spam |
+| 🔐 | Passwords |
+| 🎣 | Phishing & Scams |
+| 🌐 | Safe Browsing & Internet Safety |
+| 🦠 | Malware |
+| 🔏 | Privacy |
+| 🎭 | Social Engineering |
+| 🔑 | 2FA / MFA |
+| 🔒 | VPN |
+| 💰 | Ransomware |
+| 📡 | Wi-Fi Security |
+| 🔓 | Encryption |
+| 🚨 | Data Breach |
+| 🔴 | Hacking |
+| 🔄 | Software Updates |
+| 🛡 | Firewalls |
+| 🪪 | Identity Theft |
+| 📧 | Spam |
 
 Each topic has multiple randomised responses for variety.
 
 ---
 
-##  Architecture Notes
+## 🧱 Architecture Notes
 
 ### Design patterns used
 
@@ -138,7 +138,7 @@ Add the display label to `TopicList` and the UI chip will appear automatically.
 
 ---
 
-##  Planned Improvements
+## 🔭 Planned Improvements
 
 - [ ] Integrate OpenAI / Claude API for true NLP responses
 - [ ] Persist chat history and user preferences to disk
@@ -149,7 +149,7 @@ Add the display label to `TopicList` and the UI chip will appear automatically.
 
 ---
 
-##  Technologies
+## 🛠 Technologies
 
 | | |
 |---|---|
@@ -161,7 +161,7 @@ Add the display label to `TopicList` and the UI chip will appear automatically.
 
 ---
 
-##  Author
+## 👤 Author
 
 **Nemukongwe Oripfa Clinton**
 

@@ -4,44 +4,41 @@ using System.Collections.Generic;
 namespace CybersecurityBot
 {
     /// <summary>
-    /// Tracks conversation state: last topic, follow-up detection,
-    /// and memory of things the user has shared.
+    /// Tracks conversation state: last matched topic, message count, contextual
+    /// memory (device / browser / concern), follow-up detection, and an activity-log event.
     /// </summary>
-    public class ConversationContext
+    public sealed class ConversationContext
     {
-        // ── Automatic properties ──────────────────────────────────────────────
-        public string LastTopic       { get; set; } = string.Empty;
-        public string LastResponse    { get; set; } = string.Empty;
-        public int    MessageCount    { get; set; } = 0;
-        public string UserName        { get; set; } = string.Empty;
-        public string UserConcern     { get; set; } = string.Empty;  // remembered concern
-        public string UserDevice      { get; set; } = string.Empty;  // remembered device
-        public string UserBrowser     { get; set; } = string.Empty;  // remembered browser
+        // ── Delegate & event ──────────────────────────────────────────────────
 
-        // ── Memory store — things user has mentioned ──────────────────────────
-        private readonly List<string> _memoryLog = new();
-
-        public IReadOnlyList<string> MemoryLog => _memoryLog;
-
-        // ── Follow-up keywords ────────────────────────────────────────────────
-        private static readonly List<string> FollowUpPhrases = new()
-        {
-            "tell me more", "more info", "explain more", "give me more",
-            "another tip", "more tips", "elaborate", "go on", "continue",
-            "and?", "what else", "anything else", "more please", "expand"
-        };
-
-        // ── Delegates ─────────────────────────────────────────────────────────
-        // Delegate for logging activity — satisfies the delegate requirement
         public delegate void ActivityLogHandler(string message);
         public event ActivityLogHandler? OnActivity;
 
-        // ── Methods ───────────────────────────────────────────────────────────
+        // ── Properties ────────────────────────────────────────────────────────
+
+        public string LastTopic    { get; private set; } = string.Empty;
+        public int    MessageCount { get; private set; } = 0;
+        public string UserConcern  { get; private set; } = string.Empty;
+        public string UserDevice   { get; private set; } = string.Empty;
+        public string UserBrowser  { get; private set; } = string.Empty;
+
+        // ── Follow-up phrases ─────────────────────────────────────────────────
+
+        private static readonly HashSet<string> FollowUpPhrases = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "tell me more", "more info", "explain more", "give me more",
+            "another tip",  "more tips", "elaborate",    "go on",
+            "continue",     "what else", "anything else", "more please",
+            "expand",       "keep going", "go deeper",
+        };
+
+        // ── Public API ────────────────────────────────────────────────────────
+
         public bool IsFollowUp(string input)
         {
-            string lower = input.Trim().ToLower();
+            string lower = input.Trim().ToLowerInvariant();
             foreach (var phrase in FollowUpPhrases)
-                if (lower.Contains(phrase))
+                if (lower.Contains(phrase, StringComparison.OrdinalIgnoreCase))
                     return true;
             return false;
         }
@@ -50,43 +47,11 @@ namespace CybersecurityBot
         {
             MessageCount++;
             LastTopic = topic;
-
-            // Extract memory — remember what the user mentions
             ExtractMemory(input);
-
-            // Fire activity log event
-            OnActivity?.Invoke($"[{DateTime.Now:HH:mm:ss}] User asked about: {topic}");
+            Fire($"User asked about: {topic}");
         }
 
-        private void ExtractMemory(string input)
-        {
-            string lower = input.ToLower();
-
-            // Remember device mentions
-            if (lower.Contains("windows"))   UserDevice  = "Windows";
-            if (lower.Contains("mac"))       UserDevice  = "Mac";
-            if (lower.Contains("android"))   UserDevice  = "Android";
-            if (lower.Contains("iphone") || lower.Contains("ios")) UserDevice = "iPhone";
-
-            // Remember browser mentions
-            if (lower.Contains("chrome"))    UserBrowser = "Chrome";
-            if (lower.Contains("firefox"))   UserBrowser = "Firefox";
-            if (lower.Contains("edge"))      UserBrowser = "Edge";
-            if (lower.Contains("safari"))    UserBrowser = "Safari";
-
-            // Remember concerns
-            if (lower.Contains("hacked"))    UserConcern = "being hacked";
-            if (lower.Contains("scammed"))   UserConcern = "being scammed";
-            if (lower.Contains("phishing"))  UserConcern = "phishing";
-            if (lower.Contains("malware"))   UserConcern = "malware";
-            if (lower.Contains("password"))  UserConcern = "password security";
-        }
-
-        public void LogActivity(string message)
-        {
-            _memoryLog.Add($"[{DateTime.Now:HH:mm:ss}] {message}");
-            OnActivity?.Invoke(message);
-        }
+        public void Log(string message) => Fire(message);
 
         public string BuildMemoryRecap()
         {
@@ -96,5 +61,39 @@ namespace CybersecurityBot
             if (!string.IsNullOrEmpty(UserConcern)) parts.Add($"you're concerned about {UserConcern}");
             return parts.Count > 0 ? string.Join(", ", parts) : string.Empty;
         }
+
+        // ── Memory extraction ─────────────────────────────────────────────────
+
+        private void ExtractMemory(string input)
+        {
+            string lower = input.ToLowerInvariant();
+
+            if      (lower.Contains("windows"))                          SetDevice("Windows");
+            else if (lower.Contains("mac") || lower.Contains("macos"))  SetDevice("Mac");
+            else if (lower.Contains("android"))                          SetDevice("Android");
+            else if (lower.Contains("iphone") || lower.Contains("ios")) SetDevice("iPhone / iOS");
+            else if (lower.Contains("linux"))                            SetDevice("Linux");
+
+            if      (lower.Contains("chrome"))  SetBrowser("Chrome");
+            else if (lower.Contains("firefox")) SetBrowser("Firefox");
+            else if (lower.Contains("edge"))    SetBrowser("Edge");
+            else if (lower.Contains("safari"))  SetBrowser("Safari");
+            else if (lower.Contains("brave"))   SetBrowser("Brave");
+
+            if      (lower.Contains("hacked"))     SetConcern("being hacked");
+            else if (lower.Contains("scammed"))    SetConcern("being scammed");
+            else if (lower.Contains("phishing"))   SetConcern("phishing");
+            else if (lower.Contains("malware"))    SetConcern("malware");
+            else if (lower.Contains("ransomware")) SetConcern("ransomware");
+            else if (lower.Contains("password"))   SetConcern("password security");
+            else if (lower.Contains("privacy"))    SetConcern("privacy");
+        }
+
+        private void SetDevice(string v)  { if (UserDevice  != v) { UserDevice  = v; Fire($"Remembered: device → {v}");  } }
+        private void SetBrowser(string v) { if (UserBrowser != v) { UserBrowser = v; Fire($"Remembered: browser → {v}"); } }
+        private void SetConcern(string v) { if (UserConcern != v) { UserConcern = v; Fire($"Remembered: concern → {v}"); } }
+
+        private void Fire(string message) =>
+            OnActivity?.Invoke($"[{DateTime.Now:HH:mm:ss}] {message}");
     }
 }

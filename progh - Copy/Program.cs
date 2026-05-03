@@ -1,28 +1,21 @@
-using System;                  // Provides basic system functionality
-using CybersecurityBot;        // Allows access to classes in the CybersecurityBot namespace
+using System;
+using CybersecurityBot;
 
-/// <summary>
-/// Entry point of the Cybersecurity Awareness Bot application.
-/// This class is responsible for starting the program and initializing core components.
-/// </summary>
-class Program
+[STAThread]
+static void Main()
 {
-    /// <summary>
-    /// Main method where the application begins execution.
-    /// </summary>
-    /// <param name="args">Command-line arguments (not used in this application)</param>
-    static void Main(string[] args)
+    try
     {
-        // Play the voice greeting (if greeting.wav exists in the output folder)
         VoiceGreeting.Play();
-
-        // Display the ASCII logo and welcome branding
         UI.DisplayASCIILogo();
-
-        // Create an instance of the Chatbot class
-        Chatbot bot = new Chatbot();
-
-        // Start the chatbot interaction (greeting + conversation loop)
-        bot.Start();
+        new Chatbot().Start();
+    }
+    catch (Exception ex)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"\n  [Fatal] {ex.Message}");
+        Console.ResetColor();
+        Console.WriteLine("  Press any key to exit...");
+        Console.ReadKey(intercept: true);
     }
 }

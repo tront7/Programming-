@@ -2,61 +2,42 @@ using System;
 
 namespace CybersecurityBot
 {
-    /// <summary>
-    /// Responsible for validating user input and ensuring data entered
-    /// into the system meets basic requirements.
-    /// Demonstrates input validation and user interaction control.
-    /// </summary>
     public static class InputValidator
     {
-        /// <summary>
-        /// Validates general user input.
-        /// Ensures the input is not empty, not whitespace, and is meaningful.
-        /// </summary>
-        /// <param name="input">The user's input string</param>
-        /// <returns>True if valid, false if invalid</returns>
+        private const int MinLength = 2;
+
         public static bool IsValid(string input)
         {
-            // Check if input is null, empty, or only whitespace
             if (string.IsNullOrWhiteSpace(input))
             {
-                // Display warning message to the user
-                UI.PrintColored(
-                    "  ⚠  I didn't catch that. Please type something!", 
-                    ConsoleColor.Yellow
-                );
-                return false; // Invalid input
+                UI.PrintColored("  ⚠  Please type something before pressing Enter.", ConsoleColor.Yellow);
+                return false;
             }
 
-            // Check if input is too short to be meaningful
-            if (input.Trim().Length < 2)
+            if (input.Trim().Length < MinLength)
             {
-                // Inform user to provide more detailed input
-                UI.PrintColored(
-                    "  ⚠  That's too short. Could you be a bit more specific?", 
-                    ConsoleColor.Yellow
-                );
-                return false; // Invalid input
+                UI.PrintColored("  ⚠  That's too short — could you be more specific?", ConsoleColor.Yellow);
+                return false;
             }
 
-            return true; // Input passed all validation checks
+            return true;
         }
 
-        /// <summary>
-        /// Prompts the user to enter their name.
-        /// Continues prompting until a valid name (minimum 2 characters) is provided.
-        /// </summary>
-        /// <returns>A valid, trimmed user name</returns>
         public static string GetUserName()
-{
-    Console.Write("Please enter your name: ");
-    string? name = Console.ReadLine();
-    while (string.IsNullOrWhiteSpace(name) || name.Length < 2)
-    {
-        Console.Write("Name must be at least 2 characters. Please try again: ");
-        name = Console.ReadLine();
-    }
-    return name.Trim();
-}
+        {
+            UI.PrintColored("  What's your name?", ConsoleColor.DarkCyan);
+            Console.Write("  ➤ ");
+
+            string? name = Console.ReadLine();
+
+            while (string.IsNullOrWhiteSpace(name) || name.Trim().Length < MinLength)
+            {
+                UI.PrintColored($"  ⚠  Name must be at least {MinLength} characters. Please try again.", ConsoleColor.Yellow);
+                Console.Write("  ➤ ");
+                name = Console.ReadLine();
+            }
+
+            return name.Trim();
+        }
     }
 }

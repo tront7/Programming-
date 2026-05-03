@@ -93,15 +93,20 @@
                 </Border>
 
                 <!-- ASCII Art -->
-                <Border DockPanel.Dock="Top" Padding="8,10"
-        BorderBrush="#30363D" BorderThickness="0,0,0,1">
-    <ScrollViewer Height="120" VerticalScrollBarVisibility="Auto">
-        <TextBlock x:Name="AsciiArt"
-                   FontFamily="Consolas" FontSize="9"
-                   Foreground="#238636" TextWrapping="Wrap"
-                   LineHeight="12"/>
-    </ScrollViewer>
-</Border>
+                <Border DockPanel.Dock="Top" Padding="4,10"
+                        BorderBrush="#30363D" BorderThickness="0,0,0,1">
+                    <ScrollViewer Height="130"
+                                  HorizontalScrollBarVisibility="Hidden"
+                                  VerticalScrollBarVisibility="Hidden">
+                        <TextBlock x:Name="AsciiArt"
+                                   FontFamily="Consolas" FontSize="7"
+                                   Foreground="#238636"
+                                   TextWrapping="NoWrap"
+                                   LineHeight="10"
+                                   HorizontalAlignment="Center"
+                                   xml:space="preserve"/>
+                    </ScrollViewer>
+                </Border>
 
                 <!-- Topics header -->
                 <TextBlock DockPanel.Dock="Top"
@@ -121,6 +126,14 @@
                            FontFamily="Segoe UI" FontSize="11"
                            FontWeight="SemiBold" Margin="0,8,0,4"/>
 
+                <!-- Exit hint -->
+                <Border DockPanel.Dock="Bottom" Background="#0D1117" Padding="8,8"
+                        BorderBrush="#30363D" BorderThickness="0,1,0,0">
+                    <TextBlock Text="⌨ Type 'exit', 'quit', or 'bye' to close"
+                               Foreground="#8B949E" FontFamily="Consolas"
+                               FontSize="9" HorizontalAlignment="Center"/>
+                </Border>
+
                 <!-- Activity log -->
                 <Border DockPanel.Dock="Bottom" Margin="8,0,8,8">
                     <ScrollViewer x:Name="LogScroller"
@@ -134,13 +147,6 @@
                 </Border>
             </DockPanel>
         </Border>
-         <!-- Exit hint at bottom -->
-<Border DockPanel.Dock="Bottom" Background="#0D1117" Padding="8,8"
-        BorderBrush="#30363D" BorderThickness="0,1,0,0">
-    <TextBlock Text="⌨ Type 'exit', 'quit', or 'bye' to close"
-               Foreground="#8B949E" FontFamily="Consolas"
-               FontSize="9" HorizontalAlignment="Center"/>
-</Border>
         <!-- ── RIGHT PANEL ────────────────────────────────────────── -->
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>

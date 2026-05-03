@@ -1,351 +1,392 @@
 using System;
-using System.IO;
-using System.Media;
 using System.Runtime.Versioning;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace CybersecurityBot
 {
+    /// <summary>
+    /// Code-behind for the WPF main window.
+    /// Handles UI event wiring, message rendering, and bridges between
+    /// the WPF presentation layer and the shared domain classes.
+    /// </summary>
     [SupportedOSPlatform("windows")]
     public partial class MainWindow : Window
     {
-        private UserProfile?        _user;
-        private ConversationContext _context = new();
-        private bool                _nameEntered = false;
-        private DispatcherTimer     _sessionTimer = new();
+        // ── Session state ─────────────────────────────────────────────────────
 
-        // Colour palette
-        private static readonly SolidColorBrush BotBubble    = new(Color.FromRgb(22, 27, 34));
-        private static readonly SolidColorBrush UserBubble   = new(Color.FromRgb(31, 41, 55));
-        private static readonly SolidColorBrush BotText      = new(Color.FromRgb(88, 166, 255));
-        private static readonly SolidColorBrush UserText     = new(Color.FromRgb(230, 237, 243));
-        private static readonly SolidColorBrush SystemText   = new(Color.FromRgb(139, 148, 158));
-        private static readonly SolidColorBrush PositiveCol  = new(Color.FromRgb(35, 134, 54));
-        private static readonly SolidColorBrush WarningCol   = new(Color.FromRgb(210, 153, 34));
-        private static readonly SolidColorBrush ErrorCol     = new(Color.FromRgb(248, 81, 73));
+        private UserProfile?         _user;
+        private readonly ConversationContext _context      = new();
+        private bool                 _nameEntered  = false;
+        private readonly DispatcherTimer    _sessionTimer = new();
+
+        // ── Design tokens (colour palette) ────────────────────────────────────
+
+        private static readonly SolidColorBrush BotBubble  = Brush(22,  27,  34);
+        private static readonly SolidColorBrush UserBubble = Brush(31,  41,  55);
+        private static readonly SolidColorBrush BotText    = Brush(88,  166, 255);
+        private static readonly SolidColorBrush UserText   = Brush(230, 237, 243);
+        private static readonly SolidColorBrush SystemText = Brush(139, 148, 158);
+        private static SolidColorBrush Brush(byte r, byte g, byte b)
+            => new(Color.FromRgb(r, g, b));
+
+        // ── Constructor ───────────────────────────────────────────────────────
 
         public MainWindow()
         {
             InitializeComponent();
-            Loaded += MainWindow_Loaded;
+            Loaded += OnLoaded;
         }
 
-        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        // ── Initialisation ────────────────────────────────────────────────────
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
         {
             PlayVoiceGreeting();
-            DrawAsciiArt();
-            BuildTopicChips();
-            SetupActivityLog();
-            SetupSessionTimer();
-            ShowWelcome();
+            RenderAsciiArt();
+            PopulateTopicChips();
+            WireActivityLog();
+            StartSessionTimer();
+            ShowWelcomeMessages();
+            InputBox.Focus();
         }
 
         // ── Voice greeting ────────────────────────────────────────────────────
-       private void PlayVoiceGreeting()
-{
-    try
-    {
-        string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "greeting.wav");
-        if (File.Exists(path))
-        {
-            var player = new SoundPlayer(path);
-            player.Play();
-        }
-        else
-        {
-            _context.LogActivity("Voice greeting file not found: greeting.wav");
-        }
-    }
-    catch (Exception ex)
-    {
-        _context.LogActivity($"Voice greeting error: {ex.Message}");
-    }
-}
-        // ── ASCII art in left panel ───────────────────────────────────────────
-        private void DrawAsciiArt()
 
-{
-    AsciiArt.Text = "CYBER LIAM\n" +
-                    "█▀▀ █▀█ █▀▀ █ █ █▀▀\n" +
-                    "█▄▄ █▄█ ██▄ ▀▄▀ ██▄";
-    AsciiArt.FontSize = 12; // Larger for test
-    AsciiArt.Foreground = System.Windows.Media.Brushes.LimeGreen;
-}
+        private static void PlayVoiceGreeting() => VoiceGreeting.Play();
+
+        // ── ASCII art ─────────────────────────────────────────────────────────
+
+        private void RenderAsciiArt()
+        {
+            AsciiArt.Text =
+                " ██████╗██╗   ██╗██████╗ \n" +
+                "██╔════╝╚██╗ ██╔╝██╔══██╗\n" +
+                "██║      ╚████╔╝ ██████╔╝\n" +
+                "██║       ╚██╔╝  ██╔══██╗\n" +
+                "╚██████╗   ██║   ██████╔╝\n" +
+                " ╚═════╝   ╚═╝   ╚═════╝ \n" +
+                "                         \n" +
+                "██╗     ██╗ █████╗ ███╗  \n" +
+                "██║     ██║██╔══██╗████╗ \n" +
+                "██║     ██║███████║██╔██╗\n" +
+                "██║     ██║██╔══██║██║╚██\n" +
+                "███████╗██║██║  ██║██║ ╚═\n" +
+                "╚══════╝╚═╝╚═╝  ╚═╝╚═╝  ";
+        }
+
         // ── Topic chips ───────────────────────────────────────────────────────
-        private void BuildTopicChips()
+
+        private void PopulateTopicChips()
         {
             foreach (var topic in ResponseEngine.TopicList)
             {
-                var btn = new Button
+                var chip = new Button
                 {
                     Content = topic,
                     Style   = (Style)FindResource("TopicChip"),
                 };
-               btn.Click += (s, e) =>
-{
-    if (!_nameEntered)
-    {
-        AddSystemMessage("⚠ Please enter your name first (type it in the message box and press Enter).");
-        InputBox.Focus();
-        return;
-    }
-    string keyword = topic.Length > 2 ? topic.Substring(2).Trim() : topic;
-    InputBox.Text = keyword;
-    SendMessage();
-};
-                TopicsPanel.Children.Add(btn);
+
+                chip.Click += (_, _) =>
+                {
+                    if (!_nameEntered)
+                    {
+                        AddSystemMessage("⚠  Please enter your name first before selecting a topic.");
+                        InputBox.Focus();
+                        return;
+                    }
+
+                    // Strip the leading emoji (first 2 chars + optional space)
+                    string keyword = topic.Length > 2 ? topic[2..].Trim() : topic;
+                    InputBox.Text = keyword;
+                    SendMessage();
+                };
+
+                TopicsPanel.Children.Add(chip);
             }
         }
 
-        // ── Activity log setup ────────────────────────────────────────────────
-        private void SetupActivityLog()
+        // ── Activity log wiring ───────────────────────────────────────────────
+
+        private void WireActivityLog()
         {
-            _context.OnActivity += msg =>
-            {
+            _context.OnActivity += entry =>
                 Dispatcher.Invoke(() =>
                 {
-                    ActivityLog.Text += msg + "\n";
+                    ActivityLog.Text += entry + "\n";
                     LogScroller.ScrollToEnd();
                 });
-            };
         }
 
         // ── Session timer ─────────────────────────────────────────────────────
-        private void SetupSessionTimer()
+
+        private void StartSessionTimer()
         {
-            _sessionTimer.Interval = TimeSpan.FromSeconds(30);
-            _sessionTimer.Tick += (s, e) =>
+            _sessionTimer.Interval = TimeSpan.FromSeconds(1);
+            _sessionTimer.Tick += (_, _) =>
             {
-                if (_user != null)
-                    SessionLabel.Text = $"⏱ {_user.SessionDuration}  |  💬 {_context.MessageCount} messages";
+                if (_user is not null)
+                    SessionLabel.Text =
+                        $"⏱ {_user.SessionDuration}  |  💬 {_context.MessageCount} messages";
             };
             _sessionTimer.Start();
         }
 
-        // ── Initial welcome ───────────────────────────────────────────────────
-        private void ShowWelcome()
+        // ── Welcome messages ──────────────────────────────────────────────────
+
+        private void ShowWelcomeMessages()
         {
-            AddBotMessage("👋 Welcome to the Cybersecurity Awareness Bot!");
-            AddBotMessage("I'm here to help you stay safe in the digital world. 🛡");
-            AddSystemMessage("To get started, please enter your name below.");
-            InputBox.Focus();
+            AddBotMessage("👋 Welcome to the Cybersecurity Awareness Bot — Liam!");
+            AddBotMessage("I'm here to help you stay informed and protected in the digital world. 🛡");
+            AddSystemMessage(
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                "To get started, type your name below and press Enter or Send.\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         }
 
-        // ── Send message flow ─────────────────────────────────────────────────
-private void SendMessage()
-{
-    string input = InputBox.Text.Trim();
-    if (string.IsNullOrWhiteSpace(input)) return;
+        // ── Message dispatch ──────────────────────────────────────────────────
 
-    InputBox.Clear();
-
-    // Exit command handling
-    if (IsExitCommand(input))
-    {
-        ExitApplication();
-        return;
-    }
-
-    // Name capture phase
-    if (!_nameEntered)
-    {
-        if (input.Length < 2)
+        private void SendMessage()
         {
-            AddSystemMessage("⚠  Please enter a valid name (at least 2 characters).");
-            return;
-        }
-       _user = new UserProfile(input);
-_nameEntered = true;
+            string input = InputBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(input)) return;
 
-AddUserMessage(input);
-AddBotMessage($"{_user.TimeGreeting}, {_user.FormattedName}! 👋 Great to meet you!");
-AddSystemMessage("💡 Tip: You can type 'exit', 'quit', or 'bye' at any time to close the application."); // <-- ADD THIS
-AddBotMessage("Here's what I can help you with — click any topic on the left, or just type your question:");               ShowTopicSummary();
-                StatusLabel.Text = $"Chatting with {_user.FormattedName}";
-                _context.LogActivity($"Session started for {_user.FormattedName}");
+            InputBox.Clear();
+
+            // Exit command — always evaluated first
+            if (IsExitCommand(input))
+            {
+                HandleExit();
                 return;
             }
 
-    // Main conversation
-    AddUserMessage(input);
-    _user!.MessageCount++;
-
-
-            // Detect sentiment
-            var sentiment = SentimentDetector.Detect(input);
-            string prefix  = SentimentDetector.GetPrefix(sentiment);
-            string emoji   = SentimentDetector.GetEmojiForSentiment(sentiment);
-
-            // Show sentiment indicator
-            if (sentiment != SentimentDetector.Sentiment.Neutral)
+            // ── Phase 1: Name capture ─────────────────────────────────────────
+            if (!_nameEntered)
             {
-                SentimentBar.Visibility = Visibility.Visible;
-                SentimentLabel.Text = $"{emoji} Detected tone: {sentiment}  —  {prefix.TrimEnd()}";
-            }
-            else
-            {
-                SentimentBar.Visibility = Visibility.Collapsed;
+                if (input.Length < 2)
+                {
+                    AddSystemMessage("⚠  Name must be at least 2 characters. Please try again.");
+                    return;
+                }
+
+                _user        = new UserProfile(input);
+                _nameEntered = true;
+
+                _context.Log($"Session started for {_user.FormattedName}");
+
+                AddUserMessage(input);
+                AddBotMessage($"{_user.TimeGreeting}, {_user.FormattedName}! 👋 Great to meet you.");
+                AddBotMessage(
+                    "Click any topic chip on the left, or type your question below.\n\n" +
+                    "💡 Special commands:\n" +
+                    "  • 'tell me more'               — more detail on the last topic\n" +
+                    "  • 'what do you know about me'  — see what I've remembered\n" +
+                    "  • 'help'                       — list all available topics\n" +
+                    "  • 'exit', 'quit', or 'bye'     — close the application");
+
+                ShowTopicGrid();
+                StatusLabel.Text = $"Chatting with {_user.FormattedName}";
+                return;
             }
 
-            // Check for follow-up
+            // ── Phase 2: Main conversation ────────────────────────────────────
+            AddUserMessage(input);
+
+            // Sentiment detection
+            var    sentiment = SentimentDetector.Detect(input);
+            string prefix    = SentimentDetector.GetPrefix(sentiment);
+            string emoji     = SentimentDetector.GetEmoji(sentiment);
+
+            // Memory recall
+            if (IsMemoryRecallRequest(input))
+            {
+                string recap = _context.BuildMemoryRecap();
+                AddBotMessage(string.IsNullOrEmpty(recap)
+                    ? $"I haven't learned much about you yet, {_user.FormattedName}!\n" +
+                      "Mention your device, browser, or a security concern and I'll remember it."
+                    : $"Based on our conversation, I know that {recap}.\n" +
+                      "Is there anything specific I can help you with regarding these?");
+                _context.Log("Memory recall requested");
+                return;
+            }
+
+            // Follow-up request
             if (_context.IsFollowUp(input) && !string.IsNullOrEmpty(_context.LastTopic))
             {
                 string? followUp = ResponseEngine.GetResponse(_context.LastTopic);
-                if (followUp != null)
+                if (followUp is not null)
                 {
-                    AddBotMessage($"{prefix}Here's more on {_context.LastTopic}:\n\n{followUp}");
-                    _context.LogActivity($"Follow-up on: {_context.LastTopic}");
+                    string message = string.IsNullOrEmpty(prefix)
+                        ? $"Here's more on '{_context.LastTopic}':\n\n{followUp}"
+                        : $"{prefix}Here's more on '{_context.LastTopic}':\n\n{followUp}";
+                    AddBotMessage($"{emoji} {message}");
+                    _context.Log($"Follow-up delivered for: {_context.LastTopic}");
                     return;
                 }
             }
 
-            // Check for memory recall request
-            if (input.ToLower().Contains("remember") || input.ToLower().Contains("what do you know about me"))
-            {
-                string recap = _context.BuildMemoryRecap();
-                if (!string.IsNullOrEmpty(recap))
-                {
-                    AddBotMessage($"Based on our conversation, I know that {recap}. Is there anything specific you'd like help with regarding these?");
-                    _context.LogActivity("Memory recall requested");
-                    return;
-                }
-                else
-                {
-                    AddBotMessage("I haven't learned much about you yet! Tell me what device you use, what browser you prefer, or what security topics concern you most.");
-                    return;
-                }
-            }
-
-            // Get topic response
+            // Standard topic response
             string? response = ResponseEngine.GetResponse(input);
-            string? topicKey = ResponseEngine.GetLastTopicKey(input);
+            string? topicKey = ResponseEngine.GetMatchedTopicKey(input);
 
-            if (topicKey != null)
+            if (topicKey is not null)
                 _context.RecordMessage(input, topicKey);
 
-            if (response != null)
+            if (response is not null)
             {
-                string fullResponse = string.IsNullOrEmpty(prefix)
-                    ? response
-                    : $"{prefix}\n{response}";
-                AddBotMessage(fullResponse);
+                string full = string.IsNullOrEmpty(prefix) ? response : $"{prefix}\n{response}";
+                AddBotMessage($"{emoji} {full}");
 
-                // Memory recall hint
+                // Periodic memory recap hint (every 4 messages)
                 string recap = _context.BuildMemoryRecap();
                 if (!string.IsNullOrEmpty(recap) && _context.MessageCount % 4 == 0)
-                    AddSystemMessage($"💭 I remember: {recap}. This might be relevant to your question!");
+                    AddSystemMessage($"💭 Remembered: {recap}");
             }
             else
             {
                 AddBotMessage(
                     $"I didn't quite catch that, {_user.FormattedName}. 🤔\n\n" +
-                    "Try asking about one of the topics on the left panel, or type things like:\n" +
-                    "  • \"Tell me about phishing\"\n" +
+                    "Try asking about a topic from the panel on the left, or type things like:\n" +
                     "  • \"How do I create a strong password?\"\n" +
+                    "  • \"Tell me about phishing\"\n" +
                     "  • \"What is ransomware?\"\n" +
-                    "  • \"Give me a VPN tip\"");
-                _context.LogActivity("Unrecognised input received");
+                    "  • \"Give me a VPN tip\"\n\n" +
+                    "Type 'help' to see all available topics.");
+                _context.Log("Unrecognised input");
             }
         }
 
-        // ── Topic summary on login ────────────────────────────────────────────
-        private void ShowTopicSummary()
+        // ── Topic grid summary ────────────────────────────────────────────────
+
+        private void ShowTopicGrid()
         {
             AddSystemMessage(
-                "🔐 passwords  🎣 phishing  🌐 safe browsing  🦠 malware  🔏 privacy\n" +
-                "🎭 social engineering  🔑 2FA  🔒 VPN  💰 ransomware  📡 WiFi\n" +
-                "🔓 encryption  🚨 data breach  🔴 hacking  🛡 firewall  📧 spam");
+                "🔐 passwords    🎣 phishing      🌐 safe browsing   🦠 malware\n" +
+                "🔏 privacy      🎭 social eng.   🔑 2FA / MFA       🔒 VPN\n" +
+                "💰 ransomware   📡 WiFi          🔓 encryption      🚨 data breach\n" +
+                "🔴 hacking      🛡 firewall      📧 spam            🪪 identity theft");
         }
 
         // ── Chat bubble builders ──────────────────────────────────────────────
+
         private void AddBotMessage(string text)
-        {
-            AddMessage($"🤖 CyberBot\n{text}", BotBubble, BotText, HorizontalAlignment.Left);
-        }
+            => AddChatBubble($"🤖  Liam\n{text}", BotBubble, BotText, HorizontalAlignment.Left);
 
         private void AddUserMessage(string text)
         {
-             
-            string name = _user?.FormattedName ?? "You";
-            AddMessage($"👤 {name}\n{text}", UserBubble, UserText, HorizontalAlignment.Right);
-           
+            string label = _user?.FormattedName ?? "You";
+            AddChatBubble($"👤  {label}\n{text}", UserBubble, UserText, HorizontalAlignment.Right);
         }
 
         private void AddSystemMessage(string text)
-{
-    var tb = new TextBlock
-    {
-        Text              = text,
-        Foreground        = SystemText,
-        FontFamily        = new FontFamily("Segoe UI"),
-        FontSize          = 13,   // was 11
-        FontStyle         = FontStyles.Italic,
-        TextWrapping      = TextWrapping.Wrap,
-        HorizontalAlignment = HorizontalAlignment.Center,
-        Margin            = new Thickness(0, 4, 0, 4),
-    };
-    ChatPanel.Children.Add(tb);
-    ScrollToBottom();
-}
-
-        private void AddMessage(string text, SolidColorBrush bg, SolidColorBrush fg,
-                                HorizontalAlignment align)
         {
+            var block = new TextBlock
+            {
+                Text                = text,
+                Foreground          = SystemText,
+                FontFamily          = new FontFamily("Segoe UI"),
+                FontSize            = 11,
+                FontStyle           = FontStyles.Italic,
+                TextWrapping        = TextWrapping.Wrap,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin              = new Thickness(0, 6, 0, 6),
+            };
+
+            ChatPanel.Children.Add(block);
+            ScrollToBottom();
+        }
+
+        private void AddChatBubble(
+            string text,
+            SolidColorBrush background,
+            SolidColorBrush foreground,
+            HorizontalAlignment alignment)
+        {
+            bool isRight = alignment == HorizontalAlignment.Right;
+
             var border = new Border
             {
-                Background          = bg,
+                Background          = background,
                 CornerRadius        = new CornerRadius(10),
                 Padding             = new Thickness(14, 10, 14, 10),
-                Margin              = new Thickness(
-                    align == HorizontalAlignment.Right ? 80 : 0, 4,
-
-                HorizontalAlignment = align,
+                Margin              = new Thickness(isRight ? 80 : 0, 4, isRight ? 0 : 80, 4),
+                HorizontalAlignment = alignment,
                 MaxWidth            = 620,
             };
 
-            var tb = new TextBlock
+            var block = new TextBlock
             {
-                Text         = text,
-                Foreground   = fg,
+                Foreground   = foreground,
                 FontFamily   = new FontFamily("Consolas"),
-                FontSize     = 14,
+                FontSize     = 12.5,
                 TextWrapping = TextWrapping.Wrap,
-                LineHeight   = 18,
+                LineHeight   = 19,
             };
 
-            // Make first line (name) bold/smaller
-            if (text.Contains('\n'))
+            // Split the sender label from the message body for distinct styling
+            var parts = text.Split('\n', 2);
+            if (parts.Length == 2)
             {
-                var lines   = text.Split('\n', 2);
-                var nameRun = new System.Windows.Documents.Run(lines[0] + "\n")
+                block.Inlines.Add(new Run(parts[0] + "\n")
                 {
-                    FontSize   = 11,
                     FontFamily = new FontFamily("Segoe UI"),
+                    FontSize   = 10,
                     FontWeight = FontWeights.SemiBold,
                     Foreground = SystemText,
-                };
-                var bodyRun = new System.Windows.Documents.Run(lines[1]);
-                tb.Inlines.Clear();
-                tb.Inlines.Add(nameRun);
-                tb.Inlines.Add(bodyRun);
+                });
+                block.Inlines.Add(new Run(parts[1]));
+            }
+            else
+            {
+                block.Text = text;
             }
 
-            border.Child = tb;
+            border.Child = block;
             ChatPanel.Children.Add(border);
             ScrollToBottom();
         }
 
         private void ScrollToBottom()
-        {
-            Dispatcher.InvokeAsync(() => ChatScroller.ScrollToEnd(),
+            => Dispatcher.InvokeAsync(
+                () => ChatScroller.ScrollToEnd(),
                 DispatcherPriority.Background);
+
+        // ── Helpers ───────────────────────────────────────────────────────────
+
+        private static bool IsExitCommand(string input)
+        {
+            string t = input.Trim().ToLowerInvariant();
+            return t is "exit" or "quit" or "bye";
         }
 
-        // ── Event handlers ────────────────────────────────────────────────────
+        private static bool IsMemoryRecallRequest(string input)
+        {
+            string lower = input.ToLowerInvariant();
+            return lower.Contains("what do you know about me")
+                || lower.Contains("what have you remembered")
+                || lower.Contains("what do you remember");
+        }
+
+        // ── Exit sequence ─────────────────────────────────────────────────────
+
+        private async void HandleExit()
+        {
+            string name = _user is not null ? $", {_user.FormattedName}" : string.Empty;
+            AddBotMessage(
+                $"👋 Goodbye{name}! Stay safe out there. 🛡\n" +
+                "The application will close in 3 seconds…");
+            _context.Log($"Session ended{name}");
+
+            await System.Threading.Tasks.Task.Delay(3_000);
+            Application.Current.Shutdown();
+        }
+
+        // ── UI event handlers ─────────────────────────────────────────────────
+
         private void SendButton_Click(object sender, RoutedEventArgs e) => SendMessage();
 
         private void InputBox_KeyDown(object sender, KeyEventArgs e)
@@ -353,29 +394,17 @@ AddBotMessage("Here's what I can help you with — click any topic on the left, 
             if (e.Key == Key.Enter) SendMessage();
         }
 
-       private void ClearButton_Click(object sender, RoutedEventArgs e)
-{
-    ChatPanel.Children.Clear();
-    SentimentBar.Visibility = Visibility.Collapsed;
-    _context.LogActivity("Chat cleared by user");
-    if (_nameEntered && _user != null)
-        AddBotMessage($"Chat cleared! What else can I help you with, {_user.FormattedName}?");
-    else
-        ShowWelcome(); // shows name prompt again
-}
-        private bool IsExitCommand(string input)
-{
-    string trimmed = input.Trim().ToLower();
-    return trimmed == "exit" || trimmed == "quit" || trimmed == "bye";
-}
-private async void ExitApplication()
-{
-    AddBotMessage("👋 Goodbye! Stay safe out there. The application will close in 2 seconds.");
-    _context.LogActivity("User exited the application");
-    await System.Threading.Tasks.Task.Delay(2000);
-    Application.Current.Shutdown();
-}
+        private void ClearButton_Click(object sender, RoutedEventArgs e)
+        {
+            ChatPanel.Children.Clear();
+            _context.Log("Chat cleared by user");
 
+            if (_nameEntered && _user is not null)
+                AddBotMessage(
+                    $"Chat cleared! What else can I help you with, {_user.FormattedName}?\n\n" +
+                    "Type 'help' to see all available topics, or pick one from the left panel.");
+            else
+                ShowWelcomeMessages();
+        }
     }
-
 }

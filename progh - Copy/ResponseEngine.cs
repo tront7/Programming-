@@ -4,202 +4,466 @@ using System.Collections.Generic;
 namespace CybersecurityBot
 {
     /// <summary>
-    /// Keyword-based response engine with random response variation per topic.
-    /// Uses delegates for response selection to satisfy the delegate requirement.
+    /// Maps topic keywords to curated, randomised cybersecurity responses.
+    /// Uses a delegate for response selection so the strategy can be swapped at runtime.
     /// </summary>
     public static class ResponseEngine
     {
+        // ── Delegate ──────────────────────────────────────────────────────────
+
+        /// <summary>Selects a single response from a candidate list.</summary>
+        public delegate string ResponseSelector(IReadOnlyList<string> responses);
+
+        /// <summary>Default selector — returns a uniformly random entry.</summary>
+        public static ResponseSelector SelectResponse { get; set; } =
+            list => list[_rng.Next(list.Count)];
+
         private static readonly Random _rng = new();
 
-        // Delegate for selecting a response from a list
-        public delegate string ResponseSelector(List<string> responses);
+        // ── Response dictionary ───────────────────────────────────────────────
+        // Key  : keyword (matched via case-insensitive substring search)
+        // Value: list of alternative responses (one is chosen at random)
 
-        // Default selector — picks randomly
-        public static ResponseSelector SelectResponse = (list) =>
-            list[_rng.Next(list.Count)];
-
-        // ── Keyword → multiple responses ──────────────────────────────────────
-        private static readonly Dictionary<string, List<string>> Responses =
-            new(StringComparer.OrdinalIgnoreCase)
+        private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> Responses =
+            new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase)
         {
-            // ── General ───────────────────────────────────────────────────────
-            { "how are you", new() {
+            // ── Conversational ────────────────────────────────────────────────
+            ["how are you"] = new[]
+            {
                 "I'm fully operational and vigilant — always watching out for cyber threats! How can I help you today?",
                 "Running at 100%! Ready to help you stay safe online. What would you like to know?",
-                "All systems go! I'm here and ready to boost your cybersecurity knowledge." }},
-
-            { "what is your purpose", new() {
+                "All systems go! I'm here and ready to boost your cybersecurity knowledge.",
+            },
+            ["what is your purpose"] = new[]
+            {
                 "My purpose is to educate you about cybersecurity threats and best practices so you can stay safe online.",
                 "I'm here to be your personal cybersecurity guide — helping you understand threats and how to avoid them.",
-                "I exist to make cybersecurity simple and accessible. Ask me anything!" }},
-
-            { "hello", new() {
+                "I exist to make cybersecurity simple and accessible for everyone. Ask me anything!",
+            },
+            ["hello"] = new[]
+            {
                 "Hello! Great to see you here. Ask me anything about staying safe online.",
-                "Hey there! Ready to learn about cybersecurity? Ask me anything!",
-                "Hi! I'm your Cybersecurity Awareness Bot. What would you like to know today?" }},
-
-            { "hi", new() {
-                "Hi there! What cybersecurity topic can I help you with today?",
+                "Hey there! Ready to dive into cybersecurity? What would you like to know?",
+                "Hi! I'm your Cybersecurity Awareness Bot. What can I help you with today?",
+            },
+            ["hi"] = new[]
+            {
+                "Hi there! What cybersecurity topic can I help you with?",
                 "Hello! Feel free to ask me anything about online safety.",
-                "Hey! Great to have you here. What would you like to learn about?" }},
-
-            { "help", new() {
+                "Hey! Great to have you here. What would you like to learn about?",
+            },
+            ["help"] = new[]
+            {
                 "Sure! Try asking about: passwords, phishing, malware, safe browsing, privacy, 2FA, VPNs, ransomware, or social engineering.",
-                "I can help with passwords, phishing, malware, VPNs, ransomware, privacy, 2FA, safe browsing, and social engineering. What interests you?",
-                "Here are some topics: passwords, phishing, malware, safe browsing, privacy, 2FA, VPN, encryption, data breaches. Just ask!" }},
+                "I can help with: passwords · phishing · malware · VPNs · ransomware · privacy · 2FA · safe browsing · social engineering. What interests you?",
+                "Here are some topics to explore: passwords · phishing · malware · safe browsing · privacy · 2FA · VPN · encryption · data breaches. Just ask!",
+            },
 
             // ── Passwords ─────────────────────────────────────────────────────
-            { "password", new() {
-                "🔐 PASSWORD SAFETY:\n  • Use at least 12 characters with letters, numbers & symbols.\n  • Never reuse passwords across different sites.\n  • Use a password manager like Bitwarden or 1Password.\n  • Avoid birthdays, names, or simple words.\n  • Change passwords immediately if a breach is suspected.",
-                "🔐 STRONG PASSWORDS:\n  • A passphrase like 'Coffee!Monkey$River7' is strong and memorable.\n  • Enable a password manager — never rely on memory alone.\n  • Different password for every account — no exceptions.\n  • Never share your password with anyone, even IT support.",
-                "🔐 PASSWORD TIPS:\n  • Length beats complexity — 16 random characters is ideal.\n  • Use multi-factor authentication alongside strong passwords.\n  • Check haveibeenpwned.com to see if your passwords were leaked.\n  • Update your most important passwords every 6 months." }},
+            ["password"] = new[]
+            {
+                "🔐 PASSWORD SAFETY\n" +
+                "  • Use at least 12 characters — mix letters, numbers, and symbols.\n" +
+                "  • Never reuse passwords across different accounts.\n" +
+                "  • Use a password manager such as Bitwarden or 1Password.\n" +
+                "  • Avoid birthdays, pet names, or dictionary words.\n" +
+                "  • Change passwords immediately if a breach is suspected.",
+
+                "🔐 STRONG PASSWORDS\n" +
+                "  • A passphrase like 'Coffee!Monkey$River7' is both strong and memorable.\n" +
+                "  • A password manager removes the need to memorise dozens of passwords.\n" +
+                "  • Use a different password for every account — no exceptions.\n" +
+                "  • Never share your password, even with IT support.",
+
+                "🔐 PASSWORD TIPS\n" +
+                "  • Length beats complexity — 16+ random characters is ideal.\n" +
+                "  • Pair strong passwords with multi-factor authentication.\n" +
+                "  • Visit haveibeenpwned.com to check if your credentials were leaked.\n" +
+                "  • Review and rotate your most sensitive passwords every 6 months.",
+            },
 
             // ── Phishing ──────────────────────────────────────────────────────
-            { "phishing", new() {
-                "🎣 PHISHING AWARENESS:\n  • Phishing emails impersonate trusted sources to steal your info.\n  • Check for misspelled domains (e.g. 'amaz0n.com').\n  • Hover over links before clicking — check the actual URL.\n  • Legitimate companies never ask for passwords via email.\n  • When in doubt, contact the sender through official channels.",
-                "🎣 SPOT A PHISHING ATTACK:\n  • Be suspicious of urgent language like 'Act now or lose access'.\n  • Check the sender's email address carefully — scammers spoof real addresses.\n  • Never enter login details after clicking an email link — go directly to the site.\n  • Phishing also happens via SMS (smishing) and phone calls (vishing).",
-                "🎣 PHISHING PROTECTION:\n  • Enable spam filters on your email.\n  • Use a browser with phishing protection (Chrome, Firefox, Edge all have it).\n  • Report phishing emails to your provider — it helps protect others.\n  • Train yourself: practice at phishingquiz.withgoogle.com." }},
+            ["phishing"] = new[]
+            {
+                "🎣 PHISHING AWARENESS\n" +
+                "  • Phishing emails impersonate trusted brands to steal your credentials.\n" +
+                "  • Check for misspelled domains — e.g. 'amaz0n.com' or 'paypa1.com'.\n" +
+                "  • Hover over links before clicking to inspect the real destination URL.\n" +
+                "  • Legitimate organisations never ask for passwords via email.\n" +
+                "  • When in doubt, contact the sender through their official website.",
 
-            { "scam", new() {
-                "🎣 SCAM AWARENESS:\n  • If it sounds too good to be true, it probably is.\n  • Never send money or gift cards to someone you've only met online.\n  • Romance scams, tech support scams, and lottery scams are all common.\n  • Verify any urgent requests by calling the organisation directly.",
-                "🎣 AVOIDING SCAMS:\n  • Scammers create urgency — slow down and verify before acting.\n  • Never give remote access to your computer to unsolicited callers.\n  • Check reviews and verify websites before making purchases.\n  • Use credit cards (not debit) for online purchases for extra fraud protection." }},
+                "🎣 SPOTTING A PHISHING ATTACK\n" +
+                "  • Be suspicious of urgent language like 'Act now or lose access!'.\n" +
+                "  • Carefully check the sender's email address — scammers spoof real domains.\n" +
+                "  • Never enter login details after clicking an email link — visit the site directly.\n" +
+                "  • Phishing also arrives via SMS (smishing) and phone calls (vishing).",
+
+                "🎣 PHISHING PROTECTION\n" +
+                "  • Enable spam and phishing filters in your email client.\n" +
+                "  • Chrome, Firefox, and Edge all include built-in phishing protection.\n" +
+                "  • Report phishing emails to your provider — it helps protect others too.\n" +
+                "  • Practice spotting attacks at phishingquiz.withgoogle.com.",
+            },
+
+            // ── Scams ─────────────────────────────────────────────────────────
+            ["scam"] = new[]
+            {
+                "🎣 SCAM AWARENESS\n" +
+                "  • If it sounds too good to be true, it almost certainly is.\n" +
+                "  • Never send money or gift cards to someone you only know online.\n" +
+                "  • Romance, tech-support, and lottery scams are all extremely common.\n" +
+                "  • Verify any urgent request by calling the organisation directly.",
+
+                "🎣 AVOIDING SCAMS\n" +
+                "  • Scammers manufacture urgency — slow down and verify before acting.\n" +
+                "  • Never grant remote access to your device to an unsolicited caller.\n" +
+                "  • Check reviews and domain age before making purchases from new websites.\n" +
+                "  • Use a credit card (not debit) for online purchases for added fraud protection.",
+            },
 
             // ── Safe browsing ─────────────────────────────────────────────────
-            { "browsing", new() {
-                "🌐 SAFE BROWSING:\n  • Always look for HTTPS (padlock icon) before entering personal info.\n  • Use browser extensions like uBlock Origin to block malicious ads.\n  • Avoid downloading files from unknown websites.\n  • Keep your browser and extensions updated.\n  • Use a VPN on public Wi-Fi.",
-                "🌐 BROWSE SAFELY:\n  • Use private/incognito mode when using shared computers.\n  • Clear your cookies and browsing history regularly.\n  • Be careful of pop-ups saying your device is infected — these are scams.\n  • Stick to reputable websites and verify URLs before clicking.",
-                "🌐 BROWSER SECURITY:\n  • Enable two-factor authentication on your Google or browser account.\n  • Disable unnecessary browser extensions — they can track you.\n  • Use a privacy-focused browser like Firefox or Brave.\n  • Consider a DNS-over-HTTPS provider for extra security." }},
+            ["browsing"] = new[]
+            {
+                "🌐 SAFE BROWSING\n" +
+                "  • Always look for HTTPS (the padlock icon) before entering personal data.\n" +
+                "  • Use extensions like uBlock Origin to block malicious ads and trackers.\n" +
+                "  • Avoid downloading files from untrusted websites.\n" +
+                "  • Keep your browser and all extensions fully updated.\n" +
+                "  • Use a VPN on public Wi-Fi.",
 
-            { "internet safety", new() {
-                "🌐 INTERNET SAFETY:\n  • Think before you click — most attacks start with a single click.\n  • Use strong, unique passwords on every account.\n  • Enable 2FA wherever possible.\n  • Keep all software and apps updated.\n  • Back up your data regularly.",
-                "🌐 STAYING SAFE ONLINE:\n  • Be mindful of what personal information you share publicly.\n  • Use secure, encrypted messaging apps like Signal.\n  • Avoid public Wi-Fi for sensitive transactions.\n  • Review your social media privacy settings regularly." }},
+                "🌐 BROWSE SAFELY\n" +
+                "  • Use private/incognito mode on shared or public computers.\n" +
+                "  • Clear cookies and browsing history regularly.\n" +
+                "  • Pop-ups claiming your device is infected are almost always scams.\n" +
+                "  • Verify URLs carefully before clicking — especially in search results.",
+
+                "🌐 BROWSER SECURITY\n" +
+                "  • Disable browser extensions you no longer use — they can track you.\n" +
+                "  • Consider a privacy-focused browser like Firefox or Brave.\n" +
+                "  • Enable DNS-over-HTTPS in your browser settings for extra protection.\n" +
+                "  • Enable 2FA on any account linked to your browser profile.",
+            },
+
+            ["internet safety"] = new[]
+            {
+                "🌐 INTERNET SAFETY\n" +
+                "  • Think before you click — most attacks start with a single careless click.\n" +
+                "  • Use strong, unique passwords on every account.\n" +
+                "  • Enable 2FA wherever possible.\n" +
+                "  • Keep all software and apps updated.\n" +
+                "  • Back up your data regularly to multiple locations.",
+
+                "🌐 STAYING SAFE ONLINE\n" +
+                "  • Limit the personal information you share on social media.\n" +
+                "  • Use end-to-end encrypted messaging apps like Signal for sensitive chats.\n" +
+                "  • Avoid public Wi-Fi for banking or sensitive transactions.\n" +
+                "  • Review your privacy settings on all social platforms regularly.",
+            },
 
             // ── Malware ───────────────────────────────────────────────────────
-            { "malware", new() {
-                "🦠 MALWARE PROTECTION:\n  • Install reputable antivirus software and keep it updated.\n  • Never open attachments from unknown senders.\n  • Avoid pirated software — it's a common malware source.\n  • Regularly back up your data to an external drive or cloud.\n  • Be cautious of USB drives from unknown sources.",
-                "🦠 AVOID MALWARE:\n  • Download apps only from official stores (Google Play, App Store).\n  • Keep your operating system updated — patches fix vulnerabilities.\n  • Run regular antivirus scans even if you think you're safe.\n  • Malware can arrive via ads, email attachments, and compromised websites.",
-                "🦠 MALWARE FACTS:\n  • Ransomware, spyware, trojans, and worms are all types of malware.\n  • Signs of infection: slow device, strange pop-ups, new programs you didn't install.\n  • If infected: disconnect from internet, run antivirus, and seek expert help.\n  • Prevention is always better than cure — stay updated and stay alert." }},
+            ["malware"] = new[]
+            {
+                "🦠 MALWARE PROTECTION\n" +
+                "  • Install reputable antivirus software and keep its definitions updated.\n" +
+                "  • Never open attachments from unknown or unexpected senders.\n" +
+                "  • Avoid pirated software — it is a leading vector for malware.\n" +
+                "  • Back up your data regularly to an external drive and the cloud.\n" +
+                "  • Treat USB drives from unknown sources as potentially dangerous.",
 
-            { "virus", new() {
-                "🦠 VIRUS PROTECTION:\n  • Keep your OS and all software up to date — updates patch vulnerabilities.\n  • Use reputable antivirus and run regular scans.\n  • Don't click on pop-up ads or suspicious download buttons.\n  • Scan external drives before opening files from them.",
-                "🦠 ANTIVIRUS TIPS:\n  • Free antivirus options include Avast, AVG, and Windows Defender.\n  • Paid options like Malwarebytes offer more thorough protection.\n  • No antivirus catches everything — safe habits matter just as much.\n  • Keep your antivirus definitions updated for the latest threat detection." }},
-
-            { "antivirus", new() {
-                "🦠 ANTIVIRUS GUIDANCE:\n  • Windows Defender (built-in) is good for basic protection.\n  • For more coverage, consider Malwarebytes, Bitdefender, or ESET.\n  • Keep definitions updated — new threats appear daily.\n  • Antivirus is a safety net, not a replacement for safe browsing habits." }},
-
-            // ── Privacy ───────────────────────────────────────────────────────
-            { "privacy", new() {
-                "🔏 DATA PRIVACY:\n  • Read app permissions before installing.\n  • Limit personal info shared on social media.\n  • Review and revoke app access to your accounts regularly.\n  • Use privacy-focused search engines like DuckDuckGo.\n  • Enable full-disk encryption on your devices.",
-                "🔏 PROTECT YOUR PRIVACY:\n  • Use a VPN to hide your browsing from ISPs and hackers.\n  • Disable location tracking on apps that don't need it.\n  • Use a unique email alias for each service to reduce spam and tracking.\n  • Check your social media privacy settings — make sure only friends can see your posts.",
-                "🔏 PRIVACY TIPS:\n  • Your data is valuable — treat it like cash.\n  • Use Signal or WhatsApp for encrypted messaging.\n  • Cover your webcam when not in use.\n  • Regularly google yourself to see what's publicly visible about you." }},
-
-            // ── Social engineering ────────────────────────────────────────────
-            { "social engineering", new() {
-                "🎭 SOCIAL ENGINEERING:\n  • Attackers manipulate people psychologically to extract information.\n  • Be sceptical of urgent, unexpected requests — even from known contacts.\n  • Verify identities before sharing sensitive info.\n  • Common tactics: pretexting, baiting, tailgating, vishing.\n  • Awareness is your best defence.",
-                "🎭 MANIPULATION TACTICS:\n  • Pretexting: attacker creates a fake scenario to extract info.\n  • Baiting: leaving infected USB drives in public places.\n  • Vishing: phone calls impersonating banks or IT support.\n  • Tailgating: following someone into a secure area.\n  • Always verify before you trust." }},
-
-            // ── 2FA ───────────────────────────────────────────────────────────
-            { "two-factor", new() {
-                "🔑 TWO-FACTOR AUTHENTICATION (2FA):\n  • 2FA adds a second verification step beyond your password.\n  • Use an authenticator app (Aegis, Google Authenticator) over SMS.\n  • Enable 2FA on email, banking, and all social media accounts.\n  • Keep backup codes stored safely offline.",
-                "🔑 WHY USE 2FA:\n  • Even if your password is stolen, 2FA stops attackers from logging in.\n  • Hardware keys like YubiKey offer the strongest 2FA protection.\n  • SMS-based 2FA is better than nothing, but can be intercepted.\n  • Set up 2FA today — it only takes 2 minutes per account." }},
-
-            { "2fa", new() {
-                "🔑 2FA SETUP:\n  • Download an authenticator app like Aegis (Android) or Raivo (iOS).\n  • Go to your account's security settings and enable 2FA.\n  • Scan the QR code with your app.\n  • Store the backup codes somewhere safe and offline.",
-                "🔑 2FA FACTS:\n  • 2FA blocks 99.9% of automated account attacks (Microsoft data).\n  • SMS codes are convenient but can be intercepted via SIM swapping.\n  • Authenticator apps generate codes offline — more secure than SMS.\n  • Use 2FA on every important account — email, banking, work accounts first." }},
-
-            { "authentication", new() {
-                "🔑 AUTHENTICATION TIPS:\n  • Always prefer authenticator apps over SMS for 2FA.\n  • Biometrics (fingerprint/face) are secure and convenient — use them.\n  • Review active sessions in account settings and remove unknown devices.\n  • Never approve a 2FA request you didn't initiate." }},
-
-            // ── VPN ───────────────────────────────────────────────────────────
-            { "vpn", new() {
-                "🔒 VPN BASICS:\n  • A VPN encrypts your internet traffic, hiding it from snoopers.\n  • Essential on public Wi-Fi (cafes, airports, hotels).\n  • Choose a reputable paid VPN — Mullvad, ProtonVPN, or NordVPN.\n  • Free VPNs often log and sell your data — avoid them.",
-                "🔒 USING A VPN:\n  • A VPN hides your IP address but doesn't make you fully anonymous.\n  • Enable the kill switch feature so your traffic stops if the VPN drops.\n  • Use split tunneling to only route sensitive traffic through the VPN.\n  • Keep your VPN app updated for the latest security patches." }},
+                "🦠 AVOIDING MALWARE\n" +
+                "  • Download apps only from official stores (Google Play, Apple App Store).\n" +
+                "  • Keep your operating system updated — patches close known vulnerabilities.\n" +
+                "  • Run antivirus scans regularly, even if you believe you're safe.\n" +
+                "  • Malware can arrive through ads, email attachments, and compromised websites.",
+            },
 
             // ── Ransomware ────────────────────────────────────────────────────
-            { "ransomware", new() {
-                "💰 RANSOMWARE PROTECTION:\n  • Ransomware encrypts your files and demands payment for the key.\n  • Back up using the 3-2-1 rule: 3 copies, 2 media types, 1 offsite.\n  • Never open unexpected email attachments.\n  • Keep all software patched — ransomware exploits outdated systems.\n  • If infected: disconnect from internet immediately and seek expert help.",
-                "💰 RANSOMWARE FACTS:\n  • Paying the ransom doesn't guarantee file recovery.\n  • Ransomware attacks cost businesses billions annually.\n  • Regular offline backups are your best defence.\n  • Disable Remote Desktop Protocol (RDP) if you don't need it." }},
+            ["ransomware"] = new[]
+            {
+                "💰 RANSOMWARE PROTECTION\n" +
+                "  • Maintain regular, tested backups stored offline or in the cloud.\n" +
+                "  • Never pay the ransom — it doesn't guarantee your data is returned.\n" +
+                "  • Keep your OS and software patched to close known vulnerabilities.\n" +
+                "  • Restrict user permissions — run day-to-day tasks without admin rights.\n" +
+                "  • Disable macros in Office documents received by email.",
+
+                "💰 UNDERSTANDING RANSOMWARE\n" +
+                "  • Ransomware encrypts your files and demands payment for the key.\n" +
+                "  • Most ransomware spreads via phishing emails or unpatched vulnerabilities.\n" +
+                "  • The 3-2-1 backup rule: 3 copies, 2 media types, 1 off-site location.\n" +
+                "  • Contact a cybersecurity professional before attempting recovery.",
+            },
+
+            // ── Privacy ───────────────────────────────────────────────────────
+            ["privacy"] = new[]
+            {
+                "🔏 PROTECTING YOUR PRIVACY\n" +
+                "  • Read privacy policies before accepting — especially for free apps.\n" +
+                "  • Limit app permissions to only what is strictly necessary.\n" +
+                "  • Regularly audit which third-party apps have access to your accounts.\n" +
+                "  • Use a VPN to mask your IP address and browsing activity.\n" +
+                "  • Opt out of data-sharing schemes wherever the option is available.",
+
+                "🔏 DIGITAL PRIVACY TIPS\n" +
+                "  • Use encrypted, privacy-respecting alternatives to mainstream services.\n" +
+                "  • Disable ad personalisation in Google, Facebook, and Apple settings.\n" +
+                "  • Review and tighten social media privacy settings — check them quarterly.\n" +
+                "  • Consider a private search engine like DuckDuckGo or Brave Search.",
+            },
+
+            // ── Social engineering ────────────────────────────────────────────
+            ["social engineering"] = new[]
+            {
+                "🎭 SOCIAL ENGINEERING\n" +
+                "  • Social engineering manipulates people rather than exploiting technology.\n" +
+                "  • Attackers may impersonate IT support, colleagues, or authority figures.\n" +
+                "  • Always verify identities through a separate, trusted communication channel.\n" +
+                "  • Never feel pressured to act immediately — legitimate requests can wait.\n" +
+                "  • If something feels off, trust your instincts and verify.",
+
+                "🎭 COMMON SOCIAL ENGINEERING TACTICS\n" +
+                "  • Pretexting: fabricating a scenario to extract sensitive information.\n" +
+                "  • Baiting: leaving infected USB drives in public places.\n" +
+                "  • Tailgating: following an authorised person through a secure door.\n" +
+                "  • Quid pro quo: offering a service in exchange for credentials.\n" +
+                "  • Training and awareness are the best defences against these attacks.",
+            },
+
+            // ── 2FA / MFA ─────────────────────────────────────────────────────
+            ["2fa"] = new[]
+            {
+                "🔑 TWO-FACTOR AUTHENTICATION (2FA)\n" +
+                "  • 2FA adds a second verification step beyond your password.\n" +
+                "  • Use an authenticator app (Google Authenticator, Authy) over SMS when possible.\n" +
+                "  • Enable 2FA on email, banking, and social media accounts first.\n" +
+                "  • Store backup codes securely — print them or keep them in a password manager.\n" +
+                "  • Even if your password is stolen, 2FA can stop an attacker in their tracks.",
+
+                "🔑 MFA BEST PRACTICES\n" +
+                "  • Hardware keys (YubiKey) are the most phishing-resistant form of MFA.\n" +
+                "  • SMS 2FA is better than nothing, but is vulnerable to SIM-swapping attacks.\n" +
+                "  • Passkeys are the future — adopt them where supported for a passwordless experience.\n" +
+                "  • Never share a 2FA code with anyone — no legitimate service will ever ask for it.",
+            },
+
+            ["mfa"] = new[]
+            {
+                "🔑 MULTI-FACTOR AUTHENTICATION\n" +
+                "  • MFA is one of the single most effective security controls you can enable.\n" +
+                "  • It combines something you know (password) with something you have (phone/key).\n" +
+                "  • Enable it on every account that supports it, prioritising email and banking.\n" +
+                "  • Authenticator apps are more secure than SMS codes — use them where possible.",
+            },
+
+            // ── VPN ───────────────────────────────────────────────────────────
+            ["vpn"] = new[]
+            {
+                "🔒 VPN ESSENTIALS\n" +
+                "  • A VPN encrypts your traffic and masks your IP address from third parties.\n" +
+                "  • Always use a VPN on public or untrusted Wi-Fi networks.\n" +
+                "  • Choose a reputable provider with a strict no-logs policy (Mullvad, ProtonVPN).\n" +
+                "  • A VPN does not make you anonymous — it reduces exposure, not risk to zero.\n" +
+                "  • Free VPNs often monetise your data — invest in a paid service.",
+
+                "🔒 VPN BEST PRACTICES\n" +
+                "  • Enable the kill switch feature — it cuts your internet if the VPN drops.\n" +
+                "  • Check for DNS leaks at dnsleaktest.com after connecting.\n" +
+                "  • A VPN is not a substitute for antivirus or strong passwords.\n" +
+                "  • Use split-tunnelling to route only sensitive traffic through the VPN.",
+            },
 
             // ── Wi-Fi ─────────────────────────────────────────────────────────
-            { "wifi", new() {
-                "📡 WI-FI SECURITY:\n  • Change your router's default username and password immediately.\n  • Use WPA3 or WPA2 encryption on your home network.\n  • Create a guest network for IoT devices and visitors.\n  • Regularly check for router firmware updates.",
-                "📡 PUBLIC WI-FI RISKS:\n  • Public Wi-Fi is unencrypted — attackers can intercept traffic.\n  • Always use a VPN on public networks.\n  • Avoid accessing banking or sensitive accounts on public Wi-Fi.\n  • Watch out for 'evil twin' hotspots mimicking legitimate networks." }},
+            ["wi-fi"] = new[]
+            {
+                "📡 WI-FI SAFETY\n" +
+                "  • Use WPA3 encryption on your home network if your router supports it.\n" +
+                "  • Change your router's default admin credentials immediately.\n" +
+                "  • Disable WPS — it has well-documented vulnerabilities.\n" +
+                "  • Create a separate guest network for smart-home and IoT devices.",
 
-            { "wi-fi", new() {
-                "📡 WI-FI SAFETY:\n  • Never auto-connect to open networks — disable auto-join.\n  • Use your phone's hotspot instead of public Wi-Fi for sensitive tasks.\n  • Forget public networks after use to prevent automatic reconnection.",
-                "📡 HOME NETWORK TIPS:\n  • Position your router centrally — don't broadcast signal outside your home.\n  • Disable WPS — it has known vulnerabilities.\n  • Consider a network monitoring tool to see all connected devices." }},
+                "📡 HOME NETWORK TIPS\n" +
+                "  • Regularly review which devices are connected to your network.\n" +
+                "  • Keep your router firmware updated — manufacturers release security patches.\n" +
+                "  • Position your router centrally to minimise signal leakage outside your home.",
+            },
 
-            { "public wifi", new() {
-                "📡 PUBLIC WI-FI:\n  • Treat all public Wi-Fi as compromised — always use a VPN.\n  • Never do banking or enter passwords on public networks.\n  • Use your mobile data instead when possible.",
-                "📡 PUBLIC NETWORK DANGERS:\n  • Man-in-the-middle attacks are common on public Wi-Fi.\n  • Even HTTPS can be stripped by sophisticated attackers on open networks.\n  • Confirm the network name with staff before connecting — fake hotspots are common." }},
+            ["public wifi"] = new[]
+            {
+                "📡 PUBLIC WI-FI DANGERS\n" +
+                "  • Treat all public Wi-Fi as compromised — always use a VPN.\n" +
+                "  • Never access banking or enter passwords on a public network.\n" +
+                "  • Verify the network name with staff — fake hotspots are common.\n" +
+                "  • Use your mobile data instead whenever possible.",
+
+                "📡 MAN-IN-THE-MIDDLE ATTACKS\n" +
+                "  • Attackers on public Wi-Fi can intercept unencrypted traffic.\n" +
+                "  • Even HTTPS can be stripped by sophisticated attackers on open networks.\n" +
+                "  • Disable auto-connect to open Wi-Fi networks in your device settings.",
+            },
 
             // ── Encryption ────────────────────────────────────────────────────
-            { "encrypt", new() {
-                "🔓 ENCRYPTION BASICS:\n  • Encryption scrambles data so only authorised parties can read it.\n  • Enable full-disk encryption: BitLocker (Windows) or FileVault (Mac).\n  • Use end-to-end encrypted apps like Signal for sensitive chats.\n  • Always look for HTTPS when submitting any personal data online.",
-                "🔓 WHY ENCRYPTION MATTERS:\n  • If your laptop is stolen, encryption keeps your data safe.\n  • Encrypted messaging means even the app provider can't read your messages.\n  • Encryption is the foundation of all secure online communication." }},
+            ["encrypt"] = new[]
+            {
+                "🔓 ENCRYPTION BASICS\n" +
+                "  • Encryption scrambles your data so only authorised parties can read it.\n" +
+                "  • Enable full-disk encryption: BitLocker (Windows) or FileVault (Mac).\n" +
+                "  • Use end-to-end encrypted apps like Signal for sensitive conversations.\n" +
+                "  • Always check for HTTPS before submitting personal data on any website.",
+
+                "🔓 WHY ENCRYPTION MATTERS\n" +
+                "  • If your device is stolen, full-disk encryption protects all your data.\n" +
+                "  • End-to-end encryption means not even the app provider can read your messages.\n" +
+                "  • Encryption underpins all secure online communication — from banking to email.",
+            },
 
             // ── Data breach ───────────────────────────────────────────────────
-            { "data breach", new() {
-                "🚨 DATA BREACH RESPONSE:\n  • Check haveibeenpwned.com to see if your email was exposed.\n  • Change passwords for affected accounts immediately.\n  • Enable 2FA on all accounts as an extra layer.\n  • Watch for suspicious activity on your bank accounts.\n  • Be extra vigilant for phishing emails after a breach.",
-                "🚨 BREACH PREVENTION:\n  • Use unique passwords for every site — a breach on one won't affect others.\n  • Enable breach alert notifications in your password manager.\n  • Consider a credit freeze if financial data was exposed." }},
+            ["data breach"] = new[]
+            {
+                "🚨 DATA BREACH RESPONSE\n" +
+                "  • Check haveibeenpwned.com to see if your email was exposed.\n" +
+                "  • Change passwords for all affected accounts immediately.\n" +
+                "  • Enable 2FA on every account as an additional layer of protection.\n" +
+                "  • Monitor your bank statements for suspicious activity.\n" +
+                "  • Be extra vigilant for phishing emails in the weeks following a breach.",
 
-            { "breach", new() {
-                "🚨 IF YOU'VE BEEN BREACHED:\n  • Act fast — change passwords and enable 2FA immediately.\n  • Check haveibeenpwned.com to understand the scope.\n  • Notify your bank if financial data was involved.\n  • Monitor your accounts for the next few months for suspicious activity.",
-                "🚨 DATA BREACH FACTS:\n  • The average breach takes 207 days to be identified.\n  • Most breaches involve weak or stolen passwords.\n  • Regular password changes and unique passwords per site greatly reduce your risk." }},
+                "🚨 BREACH PREVENTION\n" +
+                "  • Unique passwords per site ensure one breach doesn't cascade to others.\n" +
+                "  • Enable breach-alert notifications in your password manager.\n" +
+                "  • Consider a credit freeze if financial data was part of the breach.",
+            },
 
-            { "hack", new() {
-                "🔴 IF YOU THINK YOU'VE BEEN HACKED:\n  • Change all important passwords immediately from a safe device.\n  • Enable 2FA on every account.\n  • Check for unrecognised devices or logins in your account settings.\n  • Contact your bank if financial accounts may be affected.\n  • Run a full antivirus scan.",
-                "🔴 PREVENTING HACKING:\n  • Hackers often use stolen credentials from previous breaches.\n  • Use a password manager so every account has a unique password.\n  • Keep software updated — most hacks exploit known, patchable vulnerabilities.\n  • Be suspicious of unsolicited contacts asking for information or access." }},
+            ["breach"] = new[]
+            {
+                "🚨 IF YOU'VE BEEN BREACHED\n" +
+                "  • Act fast — change passwords and enable 2FA immediately.\n" +
+                "  • Visit haveibeenpwned.com to understand the full scope of the exposure.\n" +
+                "  • Notify your bank if any financial data was involved.\n" +
+                "  • Monitor your accounts closely for suspicious activity over the next few months.",
+            },
+
+            // ── Hacking ───────────────────────────────────────────────────────
+            ["hack"] = new[]
+            {
+                "🔴 IF YOU THINK YOU'VE BEEN HACKED\n" +
+                "  • Change all important passwords immediately from a clean, safe device.\n" +
+                "  • Enable 2FA on every account without delay.\n" +
+                "  • Review active sessions and revoke access for any unrecognised devices.\n" +
+                "  • Contact your bank immediately if financial accounts may be affected.\n" +
+                "  • Run a full antivirus and anti-malware scan.",
+
+                "🔴 PREVENTING ACCOUNT COMPROMISE\n" +
+                "  • Attackers often use credentials stolen in previous data breaches.\n" +
+                "  • A password manager ensures every account has a unique, strong password.\n" +
+                "  • Most successful hacks exploit known, patchable vulnerabilities — keep software updated.\n" +
+                "  • Be suspicious of any unsolicited contact requesting information or access.",
+            },
 
             // ── Updates ───────────────────────────────────────────────────────
-            { "update", new() {
-                "🔄 SOFTWARE UPDATES:\n  • Updates patch security vulnerabilities — apply them promptly.\n  • Enable automatic updates for your OS and applications.\n  • Apply critical patches immediately — don't delay for convenience.\n  • Update router firmware, smart TVs, and IoT devices too.",
-                "🔄 WHY UPDATES MATTER:\n  • Most successful attacks exploit unpatched, known vulnerabilities.\n  • WannaCry ransomware infected 200,000 computers in 150 countries — all via an unpatched Windows flaw.\n  • Enabling auto-updates is one of the easiest security wins available." }},
+            ["update"] = new[]
+            {
+                "🔄 SOFTWARE UPDATES\n" +
+                "  • Updates patch security vulnerabilities — apply them promptly.\n" +
+                "  • Enable automatic updates for your OS, applications, and browser.\n" +
+                "  • Apply critical security patches the same day they are released.\n" +
+                "  • Don't forget router firmware, smart TVs, and IoT devices — they need updates too.",
+
+                "🔄 WHY UPDATES MATTER\n" +
+                "  • The majority of successful attacks exploit known, unpatched vulnerabilities.\n" +
+                "  • WannaCry infected 200,000 machines across 150 countries via an unpatched Windows flaw.\n" +
+                "  • Enabling auto-updates is one of the simplest and most impactful security steps you can take.",
+            },
 
             // ── Firewall ──────────────────────────────────────────────────────
-            { "firewall", new() {
-                "🛡 FIREWALL BASICS:\n  • A firewall monitors and controls incoming/outgoing network traffic.\n  • Windows and macOS both have built-in firewalls — make sure they're enabled.\n  • Consider a hardware firewall (router-level) for home network protection.\n  • Firewalls are your first line of defence against network-based attacks.",
-                "🛡 FIREWALL TIPS:\n  • Don't disable your firewall for any application unless absolutely necessary.\n  • Review firewall rules periodically to remove outdated exceptions.\n  • Business networks should have dedicated next-generation firewalls (NGFW)." }},
+            ["firewall"] = new[]
+            {
+                "🛡 FIREWALL BASICS\n" +
+                "  • A firewall monitors and controls incoming and outgoing network traffic.\n" +
+                "  • Windows Defender Firewall and macOS Firewall are both enabled by default — keep them on.\n" +
+                "  • A hardware firewall at the router level adds a second layer of protection.\n" +
+                "  • Firewalls are your first line of defence against network-based attacks.",
+
+                "🛡 FIREWALL TIPS\n" +
+                "  • Never disable your firewall for an application unless you fully understand the risk.\n" +
+                "  • Review firewall rules periodically and remove outdated exceptions.\n" +
+                "  • Enterprise networks should use next-generation firewalls (NGFW) with deep packet inspection.",
+            },
 
             // ── Identity theft ────────────────────────────────────────────────
-            { "identity theft", new() {
-                "🪪 IDENTITY THEFT PROTECTION:\n  • Never share your ID number, bank details, or passwords online.\n  • Shred documents containing personal info before discarding.\n  • Place a fraud alert with credit bureaus if you suspect theft.\n  • Monitor your credit report regularly for unusual activity.",
-                "🪪 IF YOUR IDENTITY IS STOLEN:\n  • Report it to your bank and credit bureaus immediately.\n  • File a police report — you'll need it for insurance and disputes.\n  • Place a credit freeze to prevent new accounts being opened in your name.\n  • Change passwords and enable 2FA on all accounts." }},
+            ["identity theft"] = new[]
+            {
+                "🪪 IDENTITY THEFT PROTECTION\n" +
+                "  • Never share your ID number, bank details, or passwords online or by phone.\n" +
+                "  • Shred all documents containing personal information before disposal.\n" +
+                "  • Place a fraud alert with credit bureaus if you suspect your identity has been stolen.\n" +
+                "  • Review your credit report regularly for accounts or enquiries you don't recognise.",
+
+                "🪪 IF YOUR IDENTITY IS STOLEN\n" +
+                "  • Report it to your bank and credit bureaus immediately.\n" +
+                "  • File a police report — you will need this for insurance and dispute resolution.\n" +
+                "  • Request a credit freeze to prevent new accounts being opened in your name.\n" +
+                "  • Change passwords and enable 2FA on all accounts as a precaution.",
+            },
 
             // ── Spam ──────────────────────────────────────────────────────────
-            { "spam", new() {
-                "📧 DEALING WITH SPAM:\n  • Never click links or open attachments in spam emails.\n  • Mark spam as junk — it helps train your email filter.\n  • Never unsubscribe from obvious spam — it confirms your email is active.\n  • Use a separate email address for online sign-ups.",
-                "📧 REDUCING SPAM:\n  • Use email aliases (SimpleLogin, AnonAddy) for sign-ups.\n  • Don't publicly post your email address.\n  • Enable your email provider's spam filter.\n  • Report phishing spam to Action Fraud or your local cyber authority." }},
+            ["spam"] = new[]
+            {
+                "📧 DEALING WITH SPAM\n" +
+                "  • Never click links or open attachments in unsolicited emails.\n" +
+                "  • Mark messages as junk to train your email client's spam filter.\n" +
+                "  • Don't unsubscribe from obvious spam — it confirms your address is active.\n" +
+                "  • Use a dedicated email address for online sign-ups and marketing.",
+
+                "📧 REDUCING SPAM\n" +
+                "  • Use email aliases (SimpleLogin, AnonAddy) to protect your real address.\n" +
+                "  • Never publicly post your email address on websites or forums.\n" +
+                "  • Enable your provider's advanced spam filter if available.\n" +
+                "  • Report phishing spam to your local cyber authority or Action Fraud.",
+            },
         };
 
-        // ── Topics list for display ───────────────────────────────────────────
-        public static readonly string[] TopicList =
+        // ── Topic list for UI chips ───────────────────────────────────────────
+
+        /// <summary>Display labels used to populate topic-chip buttons in the UI.</summary>
+        public static readonly IReadOnlyList<string> TopicList = new[]
         {
-            "🔐 passwords", "🎣 phishing", "🌐 safe browsing", "🦠 malware",
-            "🔏 privacy",   "🎭 social engineering", "🔑 2FA",  "🔒 VPN",
-            "💰 ransomware","📡 WiFi security", "🔓 encryption", "🚨 data breach",
-            "🔴 hacking",   "🔄 software updates", "🛡 firewall", "🪪 identity theft",
-            "📧 spam",      "🎣 scams"
+            "🔐 passwords",       "🎣 phishing",        "🌐 safe browsing",
+            "🦠 malware",         "🔏 privacy",          "🎭 social engineering",
+            "🔑 2FA",             "🔒 VPN",              "💰 ransomware",
+            "📡 WiFi security",   "🔓 encryption",       "🚨 data breach",
+            "🔴 hacking",         "🔄 software updates", "🛡 firewall",
+            "🪪 identity theft",  "📧 spam",             "🎣 scams",
         };
 
         // ── Public API ────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Searches <paramref name="input"/> for a known keyword and returns
+        /// a randomly selected response string, or <c>null</c> if nothing matches.
+        /// </summary>
         public static string? GetResponse(string input)
         {
             if (string.IsNullOrWhiteSpace(input)) return null;
 
-            foreach (var entry in Responses)
-            {
-                if (input.IndexOf(entry.Key, StringComparison.OrdinalIgnoreCase) >= 0)
-                    return SelectResponse(entry.Value);
-            }
+            foreach (var (key, responses) in Responses)
+                if (input.Contains(key, StringComparison.OrdinalIgnoreCase))
+                    return SelectResponse(responses);
+
             return null;
         }
 
-        public static string? GetLastTopicKey(string input)
+        /// <summary>
+        /// Returns the first matching keyword found in <paramref name="input"/>,
+        /// or <c>null</c> when no keyword is recognised.
+        /// Used to populate <see cref="ConversationContext.LastTopic"/>.
+        /// </summary>
+        public static string? GetMatchedTopicKey(string input)
         {
+            if (string.IsNullOrWhiteSpace(input)) return null;
+
             foreach (var key in Responses.Keys)
-                if (input.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0)
+                if (input.Contains(key, StringComparison.OrdinalIgnoreCase))
                     return key;
+
             return null;
         }
     }

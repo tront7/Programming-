@@ -2,112 +2,148 @@ using System;
 
 namespace CybersecurityBot
 {
-    public class Chatbot
+    /// <summary>
+    /// Orchestrates the console chat session: greeting, conversation loop, and farewell.
+    /// </summary>
+    public sealed class Chatbot
     {
-        // Uses UserProfile with automatic properties instead of a plain string
-        private UserProfile _user = new UserProfile(string.Empty);
+        private UserProfile?         _user;
+        private readonly ConversationContext _ctx = new();
 
         public void Start()
         {
+            _ctx.OnActivity += _ => { }; // Extend here to wire up file logging, etc.
             GreetUser();
-            RunConversationLoop();
+            RunLoop();
         }
 
         // ── Greeting ──────────────────────────────────────────────────────────
+
         private void GreetUser()
         {
             UI.PrintSectionHeader("WELCOME");
-
-            UI.TypeText("  Hello! I am the Cybersecurity Awareness Bot.", ConsoleColor.Cyan);
+            UI.TypeText("  Hello! I'm Liam — your Cybersecurity Awareness Bot.", ConsoleColor.Cyan);
             UI.TypeText("  I'm here to help you stay safe in the digital world.", ConsoleColor.Cyan);
             Console.WriteLine();
 
-            // Capture name and store in UserProfile
-            string rawName = InputValidator.GetUserName();
-            _user = new UserProfile(rawName);
-
+            _user = new UserProfile(InputValidator.GetUserName());
             Console.WriteLine();
 
-            // TimeGreeting uses the SessionStart automatic property
-            // FormattedName applies string manipulation (title-case) via automatic property
             UI.TypeText($"  {_user.TimeGreeting}, {_user.FormattedName}! 👋", ConsoleColor.Green);
-            UI.TypeText($"  Ask me anything about cybersecurity, or type 'help' to see topics.", ConsoleColor.Green);
-            UI.TypeText("  Type 'exit' or 'quit' at any time to leave.", ConsoleColor.DarkGray);
+            UI.TypeText("  Ask me anything, or type 'help' to browse topics.", ConsoleColor.Green);
+            UI.TypeText("  Type 'exit', 'quit', or 'bye' to end the session.", ConsoleColor.DarkGray);
             Console.WriteLine();
+
+            _ctx.Log($"Session started for {_user.FormattedName}");
         }
 
         // ── Main loop ─────────────────────────────────────────────────────────
-        private void RunConversationLoop()
+
+        private void RunLoop()
         {
             while (true)
             {
                 UI.PrintDivider('─');
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.Write($"  {_user.FormattedName}: ");
-                Console.ResetColor();
+                UI.PrintColoredInline($"  {_user!.FormattedName}: ", ConsoleColor.White);
 
                 string input = Console.ReadLine() ?? string.Empty;
 
-                // Exit check
-                if (IsExitCommand(input))
-                {
-                    Farewell();
-                    break;
-                }
-
-                // Validate input
-                if (!InputValidator.IsValid(input))
-                {
-                    continue;
-                }
-
-                // Increment message count automatic property
-                _user.MessageCount++;
-
-                // Store last topic using string manipulation (Trim + Substring)
-                _user.LastTopic = input.Trim().Length > 30
-                    ? input.Trim().Substring(0, 30) + "..."
-                    : input.Trim();
-
-                // Get and display response
-                string? response = ResponseEngine.GetResponse(input);
+                if (IsExit(input)) { ShowFarewell(); break; }
+                if (!InputValidator.IsValid(input)) continue;
 
                 Console.WriteLine();
-                if (response != null)
-                {
-                    UI.TypeText($"  🤖 Bot: {response}", ConsoleColor.Cyan, delay: 12);
-                }
-                else
-                {
-                    UI.TypeText(
-                        $"  🤖 Bot: I didn't quite understand that, {_user.FormattedName}. Could you rephrase?\n" +
-                        "         Try asking about: passwords, phishing, safe browsing, malware, privacy, or 2FA.",
-                        ConsoleColor.DarkYellow, delay: 12);
-                }
-
+                Respond(input);
                 Console.WriteLine();
             }
         }
 
-        // ── Helpers ───────────────────────────────────────────────────────────
-        private bool IsExitCommand(string input)
+        // ── Response dispatch ─────────────────────────────────────────────────
+
+        private void Respond(string input)
         {
-            if (string.IsNullOrWhiteSpace(input)) return false;
-            // String manipulation: Trim() and ToLower() to normalise input
-            string trimmed = input.Trim().ToLower();
-            return trimmed == "exit" || trimmed == "quit" || trimmed == "bye";
+            var    sentiment = SentimentDetector.Detect(input);
+            string prefix    = SentimentDetector.GetPrefix(sentiment);
+            string emoji     = SentimentDetector.GetEmoji(sentiment);
+
+            // Memory recall
+            if (IsMemoryQuery(input))
+            {
+                string recap = _ctx.BuildMemoryRecap();
+                UI.TypeText(string.IsNullOrEmpty(recap)
+                    ? $"  🤖 I haven't picked up much about you yet, {_user!.FormattedName}. " +
+                      "Mention your device, browser, or a concern and I'll remember it."
+                    : $"  🤖 I know that {recap}. Anything specific I can help with?",
+                    ConsoleColor.Cyan, delay: 10);
+                return;
+            }
+
+            // Follow-up
+            if (_ctx.IsFollowUp(input) && !string.IsNullOrEmpty(_ctx.LastTopic))
+            {
+                string? more = ResponseEngine.GetResponse(_ctx.LastTopic);
+                if (more is not null)
+                {
+                    string msg = string.IsNullOrEmpty(prefix)
+                        ? $"Here's more on '{_ctx.LastTopic}':\n\n{more}"
+                        : $"{prefix}Here's more on '{_ctx.LastTopic}':\n\n{more}";
+                    UI.TypeText($"  {emoji} {msg}", ConsoleColor.Cyan, delay: 10);
+                    return;
+                }
+            }
+
+            // Standard lookup
+            string? response = ResponseEngine.GetResponse(input);
+            string? topicKey = ResponseEngine.GetMatchedTopicKey(input);
+
+            if (topicKey is not null) _ctx.RecordMessage(input, topicKey);
+
+            if (response is not null)
+            {
+                string full = string.IsNullOrEmpty(prefix) ? response : $"{prefix}\n{response}";
+                UI.TypeText($"  {emoji} {full}", ConsoleColor.Cyan, delay: 10);
+
+                // Periodic memory recap every 4 messages
+                string recap = _ctx.BuildMemoryRecap();
+                if (!string.IsNullOrEmpty(recap) && _ctx.MessageCount % 4 == 0)
+                {
+                    Console.WriteLine();
+                    UI.PrintColored($"  💭 Note: I remember that {recap}.", ConsoleColor.DarkGray);
+                }
+            }
+            else
+            {
+                UI.TypeText(
+                    $"  🤔 I didn't catch that, {_user!.FormattedName}.\n\n" +
+                    "     Try: passwords · phishing · malware · VPN · 2FA · ransomware\n" +
+                    "     Or type 'help' for the full topic list.",
+                    ConsoleColor.DarkYellow, delay: 10);
+            }
         }
 
-        private void Farewell()
+        // ── Farewell ──────────────────────────────────────────────────────────
+
+        private void ShowFarewell()
         {
             Console.WriteLine();
             UI.PrintDivider();
-            // Uses FormattedName, MessageCount and SessionDuration automatic properties
-            UI.TypeText($"  Stay safe out there, {_user.FormattedName}! 🛡  Goodbye!", ConsoleColor.Green);
-            UI.TypeText($"  You sent {_user.MessageCount} message(s) in this session ({_user.SessionDuration}).",
+            UI.TypeText($"  Stay safe out there, {_user!.FormattedName}! 🛡  Goodbye!", ConsoleColor.Green);
+            UI.TypeText($"  {_ctx.MessageCount} message(s) sent · session time: {_user.SessionDuration}.",
                 ConsoleColor.DarkGray);
             UI.PrintDivider();
             Console.WriteLine();
+            _ctx.Log($"Session ended — {_ctx.MessageCount} messages");
+        }
+
+        // ── Helpers ───────────────────────────────────────────────────────────
+
+        private static bool IsExit(string input) =>
+            input.Trim().ToLowerInvariant() is "exit" or "quit" or "bye";
+
+        private static bool IsMemoryQuery(string input)
+        {
+            string lower = input.ToLowerInvariant();
+            return lower.Contains("what do you know about me")
+                || lower.Contains("what do you remember");
         }
     }
 }
